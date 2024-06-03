@@ -5,6 +5,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.POST
 
 class CatDetectionService {
 
@@ -20,7 +22,8 @@ class CatDetectionService {
     }
 
     fun sendCatAlert(message: String) {
-        val requestBody = RequestBody(message = message, timestamp = System.currentTimeMillis())
+        val requestBody =
+            CatAlertRequestBody(message = message, timestamp = System.currentTimeMillis())
 
         GlobalScope.launch(Dispatchers.IO) {
             try {
@@ -38,4 +41,9 @@ class CatDetectionService {
             }
         }
     }
+}
+
+interface ApiService {
+    @POST("/ring")
+    suspend fun sendAlert(@Body requestBody: CatAlertRequestBody): retrofit2.Response<Void>
 }
