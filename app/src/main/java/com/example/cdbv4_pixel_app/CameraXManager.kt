@@ -10,6 +10,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
+import com.example.cdbv4_pixel_app.services.NotificationService
 import java.util.concurrent.Executors
 
 class CameraXManager : LifecycleService() {
@@ -50,7 +51,7 @@ class CameraXManager : LifecycleService() {
         val bitmap = Utils.imageProxyToBitmap(imageProxy)
         val isCatDetected = TensorFlowHelper.detectCatInImage(bitmap)
         if (isCatDetected) {
-            NotificationHelper.sendAlert(this)
+            NotificationService(this)
             Handler(Looper.getMainLooper()).postDelayed({
                 stopSelf()
             }, 120000)
