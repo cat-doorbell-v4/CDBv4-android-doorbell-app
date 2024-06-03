@@ -12,7 +12,7 @@ class CatDetectionService {
 
     init {
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://h3togpa399.execute-api.us-east-1.amazonaws.com/")
+            .baseUrl(Constants.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 

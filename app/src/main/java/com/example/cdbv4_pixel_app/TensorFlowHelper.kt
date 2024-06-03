@@ -7,12 +7,12 @@ import java.nio.channels.FileChannel
 
 object TensorFlowHelper {
 
-    private lateinit var meowInterpreter: Interpreter
-    private lateinit var imageInterpreter: Interpreter
+    private lateinit var hearCatInterpreter: Interpreter
+    private lateinit var seeCatInterpreter: Interpreter
 
     fun init(assetManager: AssetManager) {
-        meowInterpreter = Interpreter(loadModelFile(assetManager, "yamnet.tflite"))
-        imageInterpreter = Interpreter(loadModelFile(assetManager, "efficientdet_lite0.tflite"))
+        hearCatInterpreter = Interpreter(loadModelFile(assetManager, "yamnet.tflite"))
+        seeCatInterpreter = Interpreter(loadModelFile(assetManager, "efficientdet_lite0.tflite"))
     }
 
     private fun loadModelFile(assetManager: AssetManager, modelPath: String): MappedByteBuffer {
@@ -24,19 +24,19 @@ object TensorFlowHelper {
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
     }
 
-    fun detectCatMeow(audioBuffer: ShortArray): Boolean {
+    fun hearCat(audioBuffer: ShortArray): Boolean {
         // Preprocess and run the model
         val inputBuffer = ... // Convert audioBuffer to appropriate input format
         val outputBuffer = Array(1) { FloatArray(1) }
-        meowInterpreter.run(inputBuffer, outputBuffer)
+        hearCatInterpreter.run(inputBuffer, outputBuffer)
         return outputBuffer[0][0] > 0.5
     }
 
-    fun detectCatInImage(bitmap: Bitmap): Boolean {
+    fun seeCat(bitmap: Bitmap): Boolean {
         // Preprocess and run the model
         val inputBuffer = ... // Convert bitmap to appropriate input format
         val outputBuffer = Array(1) { FloatArray(1) }
-        imageInterpreter.run(inputBuffer, outputBuffer)
+        seeCatInterpreter.run(inputBuffer, outputBuffer)
         return outputBuffer[0][0] > 0.5
     }
 }

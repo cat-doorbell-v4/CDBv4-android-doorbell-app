@@ -31,10 +31,10 @@ class CameraXManager : LifecycleService() {
             val imageAnalysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
-            imageAnalysis.setAnalyzer(cameraExecutor, { imageProxy ->
+            imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                 processImageProxy(imageProxy)
                 imageProxy.close()
-            })
+            }
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             try {
                 cameraProvider.unbindAll()
@@ -49,7 +49,7 @@ class CameraXManager : LifecycleService() {
 
     private fun processImageProxy(imageProxy: ImageProxy) {
         val bitmap = Utils.imageProxyToBitmap(imageProxy)
-        val isCatDetected = TensorFlowHelper.detectCatInImage(bitmap)
+        val isCatDetected = TensorFlowHelper.seeCat(bitmap)
         if (isCatDetected) {
             NotificationService(this)
             Handler(Looper.getMainLooper()).postDelayed({
