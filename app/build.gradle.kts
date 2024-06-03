@@ -36,11 +36,22 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    implementation("org.tensorflow:tensorflow-lite:2.7.0")
+    implementation("androidx.camera:camera-core:1.1.0")
+    implementation("androidx.camera:camera-camera2:1.1.0")
+    implementation("androidx.camera:camera-lifecycle:1.1.0")
+    implementation("androidx.camera:camera-view:1.0.0-alpha30")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.9.0")
+
+    implementation("androidx.lifecycle:lifecycle-service:2.5.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
 }
