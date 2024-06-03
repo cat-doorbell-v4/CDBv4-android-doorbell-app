@@ -11,8 +11,8 @@ object TensorFlowHelper {
     private lateinit var imageInterpreter: Interpreter
 
     fun init(assetManager: AssetManager) {
-        meowInterpreter = Interpreter(loadModelFile(assetManager, "cat_meow_model.tflite"))
-        imageInterpreter = Interpreter(loadModelFile(assetManager, "cat_image_model.tflite"))
+        meowInterpreter = Interpreter(loadModelFile(assetManager, "yamnet.tflite"))
+        imageInterpreter = Interpreter(loadModelFile(assetManager, "efficientdet_lite0.tflite"))
     }
 
     private fun loadModelFile(assetManager: AssetManager, modelPath: String): MappedByteBuffer {
