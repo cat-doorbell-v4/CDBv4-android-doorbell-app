@@ -1,7 +1,11 @@
 package com.example.cdbv4_pixel_app
 
 import android.content.res.AssetManager
+import android.graphics.Bitmap
 import org.tensorflow.lite.Interpreter
+import java.io.FileInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
@@ -25,16 +29,34 @@ object TensorFlowHelper {
     }
 
     fun hearCat(audioBuffer: ShortArray): Boolean {
-        // Preprocess and run the model
-        val inputBuffer = ... // Convert audioBuffer to appropriate input format
+        // Convert audioBuffer to appropriate input format
+        val inputBuffer =
+            ByteBuffer.allocateDirect(4 * audioBuffer.size).order(ByteOrder.nativeOrder())
+        for (value in audioBuffer) {
+            inputBuffer.putFloat(value.toFloat())
+        }
+        inputBuffer.rewind()
+
         val outputBuffer = Array(1) { FloatArray(1) }
         hearCatInterpreter.run(inputBuffer, outputBuffer)
         return outputBuffer[0][0] > 0.5
     }
 
     fun seeCat(bitmap: Bitmap): Boolean {
-        // Preprocess and run the model
-        val inputBuffer = ... // Convert bitmap to appropriate input format
+        // Convert bitmap to appropriate input format
+        val inputBuffer = ByteBuffer.allocateDirect(4 * bitmap.width * bitmap.height * 3).order(
+            ByteOrder.nativeOrder()
+        )
+        val intValues = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(intValues, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+
+        for (pixel in intValues) {
+            inputBuffer.putFloat(((pixel shr 16 and 0xFF) / 255.0f))
+            inputBuffer.putFloat(((pixel shr 8 and 0xFF) / 255.0f))
+            inputBuffer.putFloat(((pixel and 0xFF) / 255.0f))
+        }
+        inputBuffer.rewind()
+
         val outputBuffer = Array(1) { FloatArray(1) }
         seeCatInterpreter.run(inputBuffer, outputBuffer)
         return outputBuffer[0][0] > 0.5
