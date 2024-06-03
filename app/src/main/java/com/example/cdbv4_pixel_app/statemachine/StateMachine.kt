@@ -45,19 +45,16 @@ class StateMachine(private val context: Context) {
                 cameraService.stopCamera()
                 flashlightService.turnOff()
             }
-
             State.CAPTURING -> {
                 currentState = State.CAPTURING
                 soundDetectionService.stopListening()
                 if (isLowLight()) flashlightService.turnOn()
                 cameraService.startCamera()
             }
-
             State.NOTIFYING -> {
                 currentState = State.NOTIFYING
                 notificationService.sendNotification { onNotificationSent() }
             }
-
             State.WAITING -> {
                 currentState = State.WAITING
                 // Implement waiting logic, e.g., a delay of 2 minutes before transitioning back to LISTENING
