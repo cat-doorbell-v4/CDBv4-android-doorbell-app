@@ -7,6 +7,6 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface ApiService {
-    @POST("https://h3togpa399.execute-api.us-east-1.amazonaws.com/prod1/ring")
+    @POST(Constants.BASE_URL)
     suspend fun sendAlert(@Body requestBody: RequestBody): Response<ResponseBody>
 }

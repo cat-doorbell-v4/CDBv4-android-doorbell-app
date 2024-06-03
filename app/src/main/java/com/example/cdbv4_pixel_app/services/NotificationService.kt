@@ -11,14 +11,14 @@ import retrofit2.converter.gson.GsonConverterFactory
 class NotificationService(private val context: Context) {
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl("https://your-api-gateway-url/")
+        .baseUrl(Constants.BASE_URL)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
     private val service = retrofit.create(ApiService::class.java)
 
     fun sendNotification(onNotificationSent: () -> Unit) {
-        val requestBody = "{\"message\":\"Cat detected\"}"
+        val requestBody = """{"message":"Cat detected"}"""
             .toRequestBody("application/json".toMediaTypeOrNull())
 
         GlobalScope.launch {
