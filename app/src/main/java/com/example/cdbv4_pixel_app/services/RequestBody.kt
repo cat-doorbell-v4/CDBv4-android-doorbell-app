@@ -1,4 +1,4 @@
-package com.example.cdbv4_pixel_app
+package com.example.cdbv4_pixel_app.services
 
 data class RequestBody(
     val message: String,

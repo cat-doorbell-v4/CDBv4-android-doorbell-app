@@ -1,4 +1,4 @@
-package com.example.cdbv4_pixel_app
+package com.example.cdbv4_pixel_app.services
 
 import okhttp3.ResponseBody
 import retrofit2.Response
