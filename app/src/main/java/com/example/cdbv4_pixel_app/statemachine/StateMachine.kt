@@ -19,6 +19,7 @@ class StateMachine(private val context: Context) {
     private val tag = "StateMachine"
 
     fun start() {
+        soundDetectionService.initialize(context)
         soundDetectionService.startListening()
     }
 

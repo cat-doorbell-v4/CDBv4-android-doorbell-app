@@ -105,6 +105,6 @@ class AudioClassificationHelper(
         const val DISPLAY_THRESHOLD = 0.3f
         const val DEFAULT_NUM_OF_RESULTS = 2
         const val DEFAULT_OVERLAP_VALUE = 0.5f
-        const val CAT_MEOW_MODEL = "cat_meow_model.tflite"
+        const val CAT_MEOW_MODEL = "yamnet.tflite"
     }
 }
