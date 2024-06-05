@@ -28,12 +28,13 @@ object TensorFlowHelper {
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
     }
 
-    fun hearCat(audioBuffer: ShortArray): Boolean {
+    fun hearCat(audioBuffer: ByteBuffer): Boolean {
+        checkInitialization()
         // Convert audioBuffer to appropriate input format
         val inputBuffer =
-            ByteBuffer.allocateDirect(4 * audioBuffer.size).order(ByteOrder.nativeOrder())
-        for (value in audioBuffer) {
-            inputBuffer.putFloat(value.toFloat())
+            ByteBuffer.allocateDirect(4 * audioBuffer.remaining()).order(ByteOrder.nativeOrder())
+        while (audioBuffer.hasRemaining()) {
+            inputBuffer.putFloat(audioBuffer.get().toFloat())
         }
         inputBuffer.rewind()
 
@@ -43,10 +44,10 @@ object TensorFlowHelper {
     }
 
     fun seeCat(bitmap: Bitmap): Boolean {
+        checkInitialization()
         // Convert bitmap to appropriate input format
-        val inputBuffer = ByteBuffer.allocateDirect(4 * bitmap.width * bitmap.height * 3).order(
-            ByteOrder.nativeOrder()
-        )
+        val inputBuffer = ByteBuffer.allocateDirect(4 * bitmap.width * bitmap.height * 3)
+            .order(ByteOrder.nativeOrder())
         val intValues = IntArray(bitmap.width * bitmap.height)
         bitmap.getPixels(intValues, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
 
@@ -60,5 +61,11 @@ object TensorFlowHelper {
         val outputBuffer = Array(1) { FloatArray(1) }
         seeCatInterpreter.run(inputBuffer, outputBuffer)
         return outputBuffer[0][0] > 0.5
+    }
+
+    private fun checkInitialization() {
+        if (!::hearCatInterpreter.isInitialized || !::seeCatInterpreter.isInitialized) {
+            throw UninitializedPropertyAccessException("TensorFlow interpreters are not initialized. Call init() first.")
+        }
     }
 }

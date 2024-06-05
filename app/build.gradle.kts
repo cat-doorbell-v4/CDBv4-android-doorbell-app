@@ -3,6 +3,13 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("org.tensorflow:tensorflow-lite:2.9.0")
+        force("org.tensorflow:tensorflow-lite-support:0.4.2")
+    }
+}
+
 android {
     namespace = "com.example.cdbv4_pixel_app"
     compileSdk = 34
@@ -43,8 +50,11 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    implementation("org.tensorflow:tensorflow-lite:2.8.0")
-    implementation("org.tensorflow:tensorflow-lite-support:0.1.0")
+    implementation("org.tensorflow:tensorflow-lite:2.12.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.12.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.2")
+    implementation("org.tensorflow:tensorflow-lite-task-audio:0.4.2")
+
     implementation("androidx.camera:camera-core:1.1.0")
     implementation("androidx.camera:camera-camera2:1.1.0")
     implementation("androidx.camera:camera-lifecycle:1.1.0")
