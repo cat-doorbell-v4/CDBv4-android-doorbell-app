@@ -11,7 +11,7 @@ class StateMachine(private val context: Context) {
 
     private var currentState: State = State.LISTENING
 
-    private val soundDetectionService = SoundDetectionService()
+    private val soundDetectionService = SoundDetectionService { onMeowDetected() }
     private val cameraService = CameraService(context) { onCatDetected(it) }
     private val flashlightService = FlashlightService(context)
     private val notificationService = NotificationService(context)

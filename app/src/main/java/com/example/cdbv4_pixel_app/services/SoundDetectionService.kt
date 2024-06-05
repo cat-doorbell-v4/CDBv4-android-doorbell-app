@@ -9,7 +9,7 @@ import com.example.cdbv4_pixel_app.AudioClassificationHelper
 import com.example.cdbv4_pixel_app.AudioClassificationListener
 import org.tensorflow.lite.support.label.Category
 
-class SoundDetectionService : Service() {
+class SoundDetectionService(private val onMeowDetectedCallback: () -> Unit) : Service() {
 
     private lateinit var audioHelper: AudioClassificationHelper
 
@@ -35,6 +35,7 @@ class SoundDetectionService : Service() {
                     if (isCatMeowDetected) {
                         // Handle cat meow detection, e.g., activate camera, send alert, etc.
                         Log.i("SoundDetectionService", "Heard cat meow!")
+                        onMeowDetectedCallback()
                     }
                 }
             }
