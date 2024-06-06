@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("de.undercouch.download") version "5.0.5"
+
 }
 
 configurations.all {
@@ -42,6 +44,23 @@ android {
     }
 }
 
+project.ext.set("ASSET_DIR", file("src/main/assets"))
+project.ext.set("TEST_ASSETS_DIR", file("src/test/assets"))
+
+apply {
+    from("download_models.gradle")
+}
+
+tasks.register("downloadModels") {
+    dependsOn(
+        ":downloadAudioClassifierModel",
+        ":downloadModelFile",
+        ":downloadModelFile0",
+        ":downloadModelFile1",
+        ":downloadModelFile2",
+        ":copyTestModel"
+    )
+}
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

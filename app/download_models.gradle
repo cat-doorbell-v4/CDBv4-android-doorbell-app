@@ -1,35 +1,35 @@
 task downloadAudioClassifierModel(type: Download) {
     src 'https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/audio_classification/android/lite-model_yamnet_classification_tflite_1.tflite'
-    dest project.ext.ASSET_DIR + '/yamnet.tflite'
+    dest new File(project.ext.ASSET_DIR, 'yamnet.tflite')
     overwrite false
 }
 
 task downloadModelFile(type: Download) {
     src 'https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/object_detection/android/lite-model_ssd_mobilenet_v1_1_metadata_2.tflite'
-    dest project.ext.ASSET_DIR + '/mobilenetv1.tflite'
+    dest new File(project.ext.ASSET_DIR, 'mobilenetv1.tflite')
     overwrite false
 }
 
 task downloadModelFile0(type: Download) {
     src 'https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/object_detection/android/lite-model_efficientdet_lite0_detection_metadata_1.tflite'
-    dest project.ext.ASSET_DIR + '/efficientdet-lite0.tflite'
+    dest new File(project.ext.ASSET_DIR, 'efficientdet-lite0.tflite')
     overwrite false
 }
 
 task downloadModelFile1(type: Download) {
     src 'https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/object_detection/android/lite-model_efficientdet_lite1_detection_metadata_1.tflite'
-    dest project.ext.ASSET_DIR + '/efficientdet-lite1.tflite'
+    dest new File(project.ext.ASSET_DIR, 'efficientdet-lite1.tflite')
     overwrite false
 }
 
 task downloadModelFile2(type: Download) {
     src 'https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/object_detection/android/lite-model_efficientdet_lite2_detection_metadata_1.tflite'
-    dest project.ext.ASSET_DIR + '/efficientdet-lite2.tflite'
+    dest new File(project.ext.ASSET_DIR, 'efficientdet-lite2.tflite')
     overwrite false
 }
 
 task copyTestModel(type: Copy, dependsOn: downloadModelFile) {
-    from project.ext.ASSET_DIR + '/mobilenetv1.tflite'
+    from new File(project.ext.ASSET_DIR, 'mobilenetv1.tflite')
     into project.ext.TEST_ASSETS_DIR
 }
 
