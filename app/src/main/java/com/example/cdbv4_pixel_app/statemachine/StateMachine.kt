@@ -1,6 +1,8 @@
 package com.example.cdbv4_pixel_app.statemachine
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.example.cdbv4_pixel_app.services.CameraService
 import com.example.cdbv4_pixel_app.services.FlashlightService
@@ -10,13 +12,16 @@ import com.example.cdbv4_pixel_app.services.SoundDetectionService
 class StateMachine(private val context: Context) {
 
     private var currentState: State = State.LISTENING
+    private var catDetectedInCurrentCycle = false
 
     private val soundDetectionService = SoundDetectionService { onMeowDetected() }
     private val cameraService = CameraService(context) { onCatDetected(it) }
     private val flashlightService = FlashlightService(context)
-    private val notificationService = NotificationService(context)
+    private val notificationService = NotificationService(context) { onNotificationSent() }
 
     private val tag = "StateMachine"
+
+    private val handler = Handler(Looper.getMainLooper())
 
     fun start() {
         soundDetectionService.initialize(context)
@@ -27,6 +32,7 @@ class StateMachine(private val context: Context) {
         soundDetectionService.stopListening()
         cameraService.stopCamera()
         flashlightService.turnOff()
+        handler.removeCallbacksAndMessages(null)
     }
 
     private fun onMeowDetected() {
@@ -34,7 +40,8 @@ class StateMachine(private val context: Context) {
     }
 
     private fun onCatDetected(catDetected: Boolean) {
-        if (catDetected) {
+        if (catDetected && !catDetectedInCurrentCycle) {
+            catDetectedInCurrentCycle = true
             transitionTo(State.NOTIFYING)
         } else {
             transitionTo(State.LISTENING)
@@ -46,6 +53,7 @@ class StateMachine(private val context: Context) {
             State.LISTENING -> {
                 Log.i(tag, "Listening")
                 currentState = State.LISTENING
+                catDetectedInCurrentCycle = false
                 soundDetectionService.startListening()
                 cameraService.stopCamera()
                 flashlightService.turnOff()
@@ -60,13 +68,16 @@ class StateMachine(private val context: Context) {
             State.NOTIFYING -> {
                 Log.i(tag, "Notifying")
                 currentState = State.NOTIFYING
-                notificationService.sendNotification { onNotificationSent() }
+                cameraService.stopCamera()
+                flashlightService.turnOff()
+                notificationService.sendNotification()
             }
             State.WAITING -> {
                 Log.i(tag, "Waiting")
                 currentState = State.WAITING
-                // Implement waiting logic, e.g., a delay of 2 minutes before transitioning back to LISTENING
-                transitionTo(State.LISTENING)
+                handler.postDelayed({
+                    transitionTo(State.LISTENING)
+                }, 2 * 60 * 1000) // 2 minutes in milliseconds
             }
         }
     }

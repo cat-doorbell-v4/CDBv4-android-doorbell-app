@@ -37,6 +37,7 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
     private lateinit var cameraExecutor: ExecutorService
     private var cameraBound: Boolean = false
 
+
     init {
         // setupCamera() is not called here anymore
     }
@@ -110,7 +111,6 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
                         bitmapBuffer =
                             Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
                     }
-                    Log.i(TAG, "Calling detectObjects")
                     detectObjects(image)
                 }
             }
@@ -136,7 +136,6 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
     }
 
     private fun detectObjects(image: ImageProxy) {
-        Log.i(TAG, "In detectObjects")
         image.use { bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer) }
         val imageRotation = image.imageInfo.rotationDegrees
         objectDetectorHelper.detect(bitmapBuffer, imageRotation)
@@ -148,8 +147,6 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         imageHeight: Int,
         imageWidth: Int
     ) {
-        Log.i(TAG, "Looking for cat")
-
         var catDetected = false
         val handler = Handler(Looper.getMainLooper())
         val timeoutRunnable = Runnable {
@@ -164,9 +161,9 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         if (results != null) {
             loop@ for (detection in results) {
                 for (category in detection.categories) {
-                    Log.d(TAG, "Detected label: ${category.label}")
+                    Log.i(TAG, "Detected label: ${category.label}")
                     if (category.label.equals("cat", ignoreCase = true)) {
-                        Log.i(TAG, "Cat seen!")
+                        Log.d(TAG, "Cat seen!")
                         catDetected = true
                         handler.removeCallbacks(timeoutRunnable)
                         onCatDetected(true)
@@ -192,7 +189,9 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
 
     fun stopCamera() {
         Log.i(TAG, "Stopping camera")
-        cameraProvider?.unbindAll()
+        Handler(Looper.getMainLooper()).post {
+            cameraProvider?.unbindAll()
+        }
         Log.i(TAG, "Camera unbound")
         cameraBound = false
     }

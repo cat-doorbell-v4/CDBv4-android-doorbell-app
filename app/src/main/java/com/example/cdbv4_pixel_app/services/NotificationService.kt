@@ -6,7 +6,10 @@ import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class NotificationService(private val context: Context) {
+class NotificationService(
+    private val context: Context,
+    private val onNotificationSent: (Boolean) -> Unit
+) {
 
     private val retrofit = Retrofit.Builder()
         .baseUrl(Constants.BASE_URL)
@@ -15,13 +18,13 @@ class NotificationService(private val context: Context) {
 
     private val service = retrofit.create(ApiService::class.java)
 
-    fun sendNotification(onNotificationSent: () -> Unit) {
+    fun sendNotification() {
         val requestBody = CatAlertRequestBody("Cat detected", System.currentTimeMillis())
 
         GlobalScope.launch {
             val response = service.sendAlert(requestBody)
             // Handle response if needed
-            onNotificationSent()
+            onNotificationSent(true)
         }
     }
 }
