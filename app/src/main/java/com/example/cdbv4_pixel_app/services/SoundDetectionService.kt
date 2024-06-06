@@ -27,9 +27,12 @@ class SoundDetectionService(private val onMeowDetectedCallback: () -> Unit) : Se
                 }
 
                 override fun onResult(results: List<Category>, inferenceTime: Long) {
-//                    results.forEach { category ->
-//                        Log.i("SoundDetectionService", "Label: ${category.label}, Score: ${category.score}")
-//                    }
+                    results.forEach { category ->
+                        Log.i(
+                            "SoundDetectionService",
+                            "Label: ${category.label}, Score: ${category.score}"
+                        )
+                    }
 
                     val isCatMeowDetected = results.any { it.label == "Cat" && it.score >= 0.8f }
                     if (isCatMeowDetected) {

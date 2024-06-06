@@ -3,7 +3,10 @@ package com.example.cdbv4_pixel_app.services
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.hardware.camera2.CaptureRequest
+import android.provider.Settings
 import android.util.Log
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -21,6 +24,7 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
     ObjectDetectorHelper.DetectorListener {
 
     private val TAG = "CameraService"
+
     private var objectDetectorHelper: ObjectDetectorHelper = ObjectDetectorHelper(
         context = context,
         objectDetectorListener = this
@@ -32,7 +36,7 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
     private var cameraBound: Boolean = false
 
     init {
-        setupCamera()
+        // setupCamera() is not called here anymore
     }
 
     @SuppressLint("MissingPermission")
@@ -40,7 +44,14 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         cameraExecutor = Executors.newSingleThreadExecutor()
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
-            cameraProvider = cameraProviderFuture.get()
+            try {
+                cameraProvider = cameraProviderFuture.get()
+                val flashNotificationSetting = getCameraFlashNotificationSetting(context)
+                Log.i(TAG, "Flash notification setting: $flashNotificationSetting")
+                bindCameraUseCases() // Ensure we try to bind when the camera provider is ready
+            } catch (e: Exception) {
+                Log.e(TAG, "Error initializing camera provider: ${e.message}")
+            }
         }, ContextCompat.getMainExecutor(context))
     }
 
@@ -50,9 +61,30 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
             cameraProvider ?: throw IllegalStateException("Camera initialization failed.")
         val cameraSelector =
             CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
-        val preview = Preview.Builder()
+
+        val previewBuilder = Preview.Builder()
             .setTargetAspectRatio(AspectRatio.RATIO_4_3)
-            .build()
+
+        // Configure Camera2Interop with session capture callback timeout
+        val camera2Interop = Camera2Interop.Extender(previewBuilder)
+        camera2Interop.setCaptureRequestOption(
+            CaptureRequest.CONTROL_AF_MODE,
+            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+        )
+        camera2Interop.setCaptureRequestOption(
+            CaptureRequest.CONTROL_AE_MODE,
+            CaptureRequest.CONTROL_AE_MODE_ON
+        )
+        camera2Interop.setCaptureRequestOption(
+            CaptureRequest.CONTROL_AWB_MODE,
+            CaptureRequest.CONTROL_AWB_MODE_AUTO
+        )
+        camera2Interop.setCaptureRequestOption(
+            CaptureRequest.SENSOR_FRAME_DURATION,
+            10000L // Set timeout to 10 seconds
+        )
+
+        val preview = previewBuilder.build()
 
         imageAnalyzer = ImageAnalysis.Builder()
             .setTargetAspectRatio(AspectRatio.RATIO_4_3)
@@ -65,21 +97,33 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
                         bitmapBuffer =
                             Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
                     }
+                    Log.i(TAG, "Calling detectObjects")
                     detectObjects(image)
                 }
             }
 
-        cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(
-            context as LifecycleOwner,
-            cameraSelector,
-            preview,
-            imageAnalyzer
-        )
-        cameraBound = true
+        try {
+            if (cameraBound) {
+                Log.i(TAG, "Unbinding all use cases")
+                cameraProvider.unbindAll()
+            }
+
+            Log.i(TAG, "Binding to lifecycle")
+            cameraProvider.bindToLifecycle(
+                context as LifecycleOwner,
+                cameraSelector,
+                preview,
+                imageAnalyzer
+            )
+            Log.i(TAG, "Camera bound")
+            cameraBound = true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error binding camera use cases: ${e.message}")
+        }
     }
 
     private fun detectObjects(image: ImageProxy) {
+        Log.i(TAG, "In detectObjects")
         image.use { bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer) }
         val imageRotation = image.imageInfo.rotationDegrees
         objectDetectorHelper.detect(bitmapBuffer, imageRotation)
@@ -92,11 +136,15 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         imageWidth: Int
     ) {
         var catDetected = false
-        results?.forEach { detection ->
-            detection.categories.forEach { category ->
-                Log.d(TAG, "Detected label: ${category.label}")
-                if (category.label.equals("cat", ignoreCase = true)) {
-                    catDetected = true
+        if (results != null) {
+            loop@ for (detection in results) {
+                for (category in detection.categories) {
+                    Log.d(TAG, "Detected label: ${category.label}")
+                    if (category.label.equals("cat", ignoreCase = true)) {
+                        Log.i(TAG, "Cat seen!")
+                        catDetected = true
+                        break@loop
+                    }
                 }
             }
         }
@@ -109,12 +157,26 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
 
     fun startCamera() {
         if (!cameraBound) {
-            bindCameraUseCases()
+            Log.i(TAG, "Starting camera")
+            setupCamera() // Setup camera when starting it
+        } else {
+            Log.e(TAG, "Camera already bound")
         }
     }
 
     fun stopCamera() {
+        Log.i(TAG, "Stopping camera")
         cameraProvider?.unbindAll()
+        Log.i(TAG, "Camera unbound")
         cameraBound = false
+    }
+
+    private fun getCameraFlashNotificationSetting(context: Context): Int {
+        return try {
+            Settings.System.getInt(context.contentResolver, "camera_flash_notification")
+        } catch (e: Settings.SettingNotFoundException) {
+            Log.e(TAG, "Setting not found: camera_flash_notification", e)
+            0  // Default value or handle accordingly
+        }
     }
 }
