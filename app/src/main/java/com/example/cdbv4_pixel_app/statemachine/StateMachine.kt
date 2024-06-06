@@ -77,6 +77,6 @@ class StateMachine(private val context: Context) {
 
     private fun isLowLight(): Boolean {
         // Implement low-light detection logic
-        return true
+        return false
     }
 }

@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.hardware.camera2.CaptureRequest
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import androidx.camera.camera2.interop.Camera2Interop
@@ -46,8 +48,6 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         cameraProviderFuture.addListener({
             try {
                 cameraProvider = cameraProviderFuture.get()
-                val flashNotificationSetting = getCameraFlashNotificationSetting(context)
-                Log.i(TAG, "Flash notification setting: $flashNotificationSetting")
                 bindCameraUseCases() // Ensure we try to bind when the camera provider is ready
             } catch (e: Exception) {
                 Log.e(TAG, "Error initializing camera provider: ${e.message}")
@@ -55,8 +55,21 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         }, ContextCompat.getMainExecutor(context))
     }
 
+    private fun checkFlashNotificationSetting() {
+        try {
+            val flashNotificationSetting =
+                Settings.System.getInt(context.contentResolver, "camera_flash_notification")
+            Log.i(TAG, "Camera flash notification setting: $flashNotificationSetting")
+        } catch (e: Settings.SettingNotFoundException) {
+            Log.e(TAG, "Camera flash notification setting not found: ${e.message}")
+            // Provide fallback mechanism or alternative action here
+        }
+    }
+
     @SuppressLint("UnsafeOptInUsageError")
     private fun bindCameraUseCases() {
+        checkFlashNotificationSetting()
+
         val cameraProvider =
             cameraProvider ?: throw IllegalStateException("Camera initialization failed.")
         val cameraSelector =
@@ -81,7 +94,7 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         )
         camera2Interop.setCaptureRequestOption(
             CaptureRequest.SENSOR_FRAME_DURATION,
-            10000L // Set timeout to 10 seconds
+            10000000L // Set timeout to 10 seconds (10,000,000 nanoseconds)
         )
 
         val preview = previewBuilder.build()
@@ -135,7 +148,19 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         imageHeight: Int,
         imageWidth: Int
     ) {
+        Log.i(TAG, "Looking for cat")
+
         var catDetected = false
+        val handler = Handler(Looper.getMainLooper())
+        val timeoutRunnable = Runnable {
+            if (!catDetected) {
+                Log.i(TAG, "No cat detected within 45 seconds. Giving up.")
+                onCatDetected(false)
+            }
+        }
+
+        handler.postDelayed(timeoutRunnable, 45000) // 45 seconds
+
         if (results != null) {
             loop@ for (detection in results) {
                 for (category in detection.categories) {
@@ -143,12 +168,13 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
                     if (category.label.equals("cat", ignoreCase = true)) {
                         Log.i(TAG, "Cat seen!")
                         catDetected = true
+                        handler.removeCallbacks(timeoutRunnable)
+                        onCatDetected(true)
                         break@loop
                     }
                 }
             }
         }
-        onCatDetected(catDetected)
     }
 
     override fun onError(error: String) {
@@ -169,14 +195,5 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         cameraProvider?.unbindAll()
         Log.i(TAG, "Camera unbound")
         cameraBound = false
-    }
-
-    private fun getCameraFlashNotificationSetting(context: Context): Int {
-        return try {
-            Settings.System.getInt(context.contentResolver, "camera_flash_notification")
-        } catch (e: Settings.SettingNotFoundException) {
-            Log.e(TAG, "Setting not found: camera_flash_notification", e)
-            0  // Default value or handle accordingly
-        }
     }
 }
