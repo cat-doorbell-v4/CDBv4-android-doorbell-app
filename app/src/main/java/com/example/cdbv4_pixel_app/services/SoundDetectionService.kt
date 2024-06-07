@@ -11,7 +11,8 @@ import org.tensorflow.lite.support.label.Category
 
 class SoundDetectionService(private val onCatHeardCallback: () -> Unit) : Service() {
 
-    private lateinit var audioHelper: AudioClassificationHelper
+    private var audioHelper: AudioClassificationHelper? = null
+    private var TAG = "SoundDetectionService"
 
     override fun onCreate() {
         super.onCreate()
@@ -23,21 +24,18 @@ class SoundDetectionService(private val onCatHeardCallback: () -> Unit) : Servic
             context = context,
             listener = object : AudioClassificationListener {
                 override fun onError(error: String) {
-                    Log.e("SoundDetectionService", error)
+                    Log.e(TAG, error)
                 }
 
                 override fun onResult(results: List<Category>, inferenceTime: Long) {
                     results.forEach { category ->
-                        Log.i(
-                            "SoundDetectionService",
-                            "Label: ${category.label}, Score: ${category.score}"
-                        )
+                        Log.i(TAG, "Label: ${category.label}, Score: ${category.score}")
                     }
 
                     val isCatMeowDetected = results.any { it.label == "Cat" && it.score >= 0.8f }
                     if (isCatMeowDetected) {
                         // Handle cat meow detection, e.g., activate camera, send alert, etc.
-                        Log.i("SoundDetectionService", "Heard cat meow!")
+                        Log.i(TAG, "Heard cat meow!")
                         onCatHeardCallback()
                     }
                 }
@@ -60,10 +58,10 @@ class SoundDetectionService(private val onCatHeardCallback: () -> Unit) : Servic
     }
 
     fun startListening() {
-        audioHelper.startAudioClassification()
+        audioHelper?.startAudioClassification()
     }
 
     fun stopListening() {
-        audioHelper.stopAudioClassification()
+        audioHelper?.stopAudioClassification()
     }
 }
