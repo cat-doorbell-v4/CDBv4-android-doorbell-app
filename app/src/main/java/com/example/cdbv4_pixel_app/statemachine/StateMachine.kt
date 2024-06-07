@@ -44,8 +44,8 @@ class StateMachine(private val context: Context) {
             Log.i(tag, "Cat seen, transitioning to NOTIFYING")
             transitionTo(State.NOTIFYING)
         } else {
-            Log.i(tag, "No cat seen, transitioning to WAITING")
-            transitionTo(State.WAITING)
+            Log.i(tag, "No cat seen, transitioning back to LISTENING")
+            transitionTo(State.LISTENING)
         }
     }
 
