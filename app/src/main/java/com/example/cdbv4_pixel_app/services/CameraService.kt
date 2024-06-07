@@ -155,18 +155,8 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
             return
         }
 
-        var catDetected = false
-
-        timeoutRunnable = Runnable {
-            if (!catDetected) {
-                Log.i(TAG, "No cat detected within 45 seconds. Giving up.")
-                handler.removeCallbacks(timeoutRunnable!!)
-                stopCameraProcessing()
-                onCatSeen(false)
-            }
-        }
-
-        handler.postDelayed(timeoutRunnable!!, 45000) // 45 seconds
+        // Start the timeout when results are being processed
+        startTimeout()
 
         if (results != null) {
             loop@ for (detection in results) {
@@ -174,8 +164,7 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
                     Log.i(TAG, "Detected label: ${category.label}")
                     if (category.label.equals("cat", ignoreCase = true)) {
                         Log.d(TAG, "Cat seen!")
-                        catDetected = true
-                        handler.removeCallbacks(timeoutRunnable!!)
+                        stopTimeout()
                         stopCameraProcessing()
                         onCatSeen(true)
                         break@loop
@@ -183,12 +172,14 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
                 }
             }
         }
+        // If no cat is detected within 45 seconds, the timeoutRunnable will handle the case
     }
 
     override fun onError(error: String) {
         Log.e(TAG, "Object detection error: $error")
     }
 
+    // Start the camera and initiate timeout
     fun startCamera() {
         if (!cameraBound) {
             Log.i(TAG, "Starting camera")
@@ -198,6 +189,7 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
         }
     }
 
+    // Stop the camera and clear timeout
     fun stopCamera() {
         Log.i(TAG, "Stopping camera")
         stopCameraProcessing()
@@ -207,8 +199,24 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
         cameraBound = false
     }
 
+    // Stop camera processing and remove any callbacks
     private fun stopCameraProcessing() {
         cameraStopped = true
+        stopTimeout() // Ensure timeout is stopped when the camera processing stops
+    }
+
+    // Start timeout logic
+    private fun startTimeout() {
+        stopTimeout() // Clear any existing timeout before starting a new one
+        timeoutRunnable = Runnable {
+            Log.i(TAG, "No cat detected within 45 seconds. Giving up.")
+            onCatSeen(false)
+        }.also { handler.postDelayed(it, 45000) }
+    }
+
+    // Stop timeout logic
+    private fun stopTimeout() {
         timeoutRunnable?.let { handler.removeCallbacks(it) }
+        timeoutRunnable = null
     }
 }
