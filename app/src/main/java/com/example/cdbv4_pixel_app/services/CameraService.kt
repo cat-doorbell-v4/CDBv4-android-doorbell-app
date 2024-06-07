@@ -22,7 +22,7 @@ import org.tensorflow.lite.task.vision.detector.Detection
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class CameraService(private val context: Context, private val onCatDetected: (Boolean) -> Unit) :
+class CameraService(private val context: Context, private val onCatSeen: (Boolean) -> Unit) :
     ObjectDetectorHelper.DetectorListener {
 
     private val TAG = "CameraService"
@@ -152,7 +152,7 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         val timeoutRunnable = Runnable {
             if (!catDetected) {
                 Log.i(TAG, "No cat detected within 45 seconds. Giving up.")
-                onCatDetected(false)
+                onCatSeen(false)
             }
         }
 
@@ -166,7 +166,7 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
                         Log.d(TAG, "Cat seen!")
                         catDetected = true
                         handler.removeCallbacks(timeoutRunnable)
-                        onCatDetected(true)
+                        onCatSeen(true)
                         break@loop
                     }
                 }
@@ -192,7 +192,6 @@ class CameraService(private val context: Context, private val onCatDetected: (Bo
         Handler(Looper.getMainLooper()).post {
             cameraProvider?.unbindAll()
         }
-        Log.i(TAG, "Camera unbound")
         cameraBound = false
     }
 }

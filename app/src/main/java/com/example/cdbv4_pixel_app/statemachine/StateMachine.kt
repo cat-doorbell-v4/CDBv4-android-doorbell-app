@@ -12,10 +12,9 @@ import com.example.cdbv4_pixel_app.services.SoundDetectionService
 class StateMachine(private val context: Context) {
 
     private var currentState: State = State.LISTENING
-    private var catDetectedInCurrentCycle = false
 
-    private val soundDetectionService = SoundDetectionService { onMeowDetected() }
-    private val cameraService = CameraService(context) { onCatDetected(it) }
+    private val soundDetectionService = SoundDetectionService { onCatHeard() }
+    private val cameraService = CameraService(context) { onCatSeen(it) }
     private val flashlightService = FlashlightService(context)
     private val notificationService = NotificationService(context) { onNotificationSent() }
 
@@ -35,50 +34,15 @@ class StateMachine(private val context: Context) {
         handler.removeCallbacksAndMessages(null)
     }
 
-    private fun onMeowDetected() {
+    private fun onCatHeard() {
         transitionTo(State.CAPTURING)
     }
 
-    private fun onCatDetected(catDetected: Boolean) {
-        if (catDetected && !catDetectedInCurrentCycle) {
-            catDetectedInCurrentCycle = true
+    private fun onCatSeen(seen: Boolean) {
+        if (seen) {
             transitionTo(State.NOTIFYING)
         } else {
-            transitionTo(State.LISTENING)
-        }
-    }
-
-    private fun transitionTo(newState: State) {
-        when (newState) {
-            State.LISTENING -> {
-                Log.i(tag, "Listening")
-                currentState = State.LISTENING
-                catDetectedInCurrentCycle = false
-                soundDetectionService.startListening()
-                cameraService.stopCamera()
-                flashlightService.turnOff()
-            }
-            State.CAPTURING -> {
-                Log.i(tag, "Capturing")
-                currentState = State.CAPTURING
-                soundDetectionService.stopListening()
-                if (isLowLight()) flashlightService.turnOn()
-                cameraService.startCamera()
-            }
-            State.NOTIFYING -> {
-                Log.i(tag, "Notifying")
-                currentState = State.NOTIFYING
-                cameraService.stopCamera()
-                flashlightService.turnOff()
-                notificationService.sendNotification()
-            }
-            State.WAITING -> {
-                Log.i(tag, "Waiting")
-                currentState = State.WAITING
-                handler.postDelayed({
-                    transitionTo(State.LISTENING)
-                }, 2 * 60 * 1000) // 2 minutes in milliseconds
-            }
+            transitionTo(State.WAITING)
         }
     }
 
@@ -89,5 +53,44 @@ class StateMachine(private val context: Context) {
     private fun isLowLight(): Boolean {
         // Implement low-light detection logic
         return false
+    }
+
+    private fun transitionTo(newState: State) {
+        when (newState) {
+            State.LISTENING -> {
+                Log.i(tag, "Listening")
+                currentState = State.LISTENING
+                cameraService.stopCamera()
+                flashlightService.turnOff()
+                soundDetectionService.startListening()
+            }
+
+            State.CAPTURING -> {
+                Log.i(tag, "Capturing")
+                currentState = State.CAPTURING
+                soundDetectionService.stopListening()
+                if (isLowLight()) flashlightService.turnOn()
+                cameraService.startCamera()
+            }
+
+            State.NOTIFYING -> {
+                Log.i(tag, "Notifying")
+                currentState = State.NOTIFYING
+                cameraService.stopCamera()
+                flashlightService.turnOff()
+                notificationService.sendNotification()
+            }
+
+            State.WAITING -> {
+                Log.i(tag, "Waiting")
+                currentState = State.WAITING
+                soundDetectionService.stopListening()
+                cameraService.stopCamera()
+                flashlightService.turnOff()
+                handler.postDelayed({
+                    transitionTo(State.LISTENING)
+                }, 2 * 60 * 1000) // 2 minutes in milliseconds
+            }
+        }
     }
 }
