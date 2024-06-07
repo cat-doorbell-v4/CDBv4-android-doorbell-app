@@ -14,10 +14,10 @@ class StateMachine(private val context: Context) {
     private var currentState: State = State.LISTENING
     private var isWaitingScheduled = false
 
-    private val soundDetectionService = SoundDetectionService { onCatHeard() }
-    private val cameraService = CameraService(context) { onCatSeen(it) }
-    private val flashlightService = FlashlightService(context)
-    private val notificationService = NotificationService(context) { onNotificationSent() }
+    private var soundDetectionService: SoundDetectionService? = null
+    private var cameraService: CameraService? = null
+    private var flashlightService: FlashlightService? = null
+    private var notificationService: NotificationService? = null
 
     private val tag = "StateMachine"
 
@@ -25,15 +25,11 @@ class StateMachine(private val context: Context) {
 
     fun start() {
         Log.i(tag, "Starting state machine")
-        soundDetectionService.initialize(context)
-        soundDetectionService.startListening()
+        transitionTo(State.LISTENING)
     }
 
     fun stop() {
         Log.i(tag, "Stopping state machine")
-        soundDetectionService.stopListening()
-        cameraService.stopCamera()
-        flashlightService.turnOff()
         handler.removeCallbacksAndMessages(null)
         isWaitingScheduled = false
     }
@@ -65,33 +61,48 @@ class StateMachine(private val context: Context) {
 
     private fun transitionTo(newState: State) {
         Log.i(tag, "Transitioning from $currentState to $newState")
+
         when (newState) {
             State.LISTENING -> {
                 Log.i(tag, "Entering LISTENING state")
                 currentState = State.LISTENING
-                soundDetectionService.startListening()
+                soundDetectionService = SoundDetectionService { onCatHeard() }
+                soundDetectionService?.initialize(context)
+                soundDetectionService?.startListening()
                 isWaitingScheduled = false
                 Log.i(tag, "Exiting LISTENING state")
             }
             State.CAPTURING -> {
                 Log.i(tag, "Entering CAPTURING state")
                 currentState = State.CAPTURING
-                soundDetectionService.stopListening()
+                soundDetectionService?.stopListening()
+                soundDetectionService = null
+
+                flashlightService = FlashlightService(context)
                 if (isLowLight()) {
-                    flashlightService.turnOn()
+                    flashlightService?.turnOn()
                 }
-                cameraService.startCamera()
+
+                cameraService = CameraService(context) { onCatSeen(it) }
+                cameraService?.startCamera()
                 Log.i(tag, "Exiting CAPTURING state")
             }
             State.NOTIFYING -> {
                 Log.i(tag, "Entering NOTIFYING state")
                 currentState = State.NOTIFYING
-                cameraService.stopCamera()
-                flashlightService.turnOff()
-                notificationService.sendNotification()
+
+                cameraService?.stopCamera()
+                cameraService = null
+
+                flashlightService?.turnOff()
+                flashlightService = null
+
+                notificationService = NotificationService(context) { onNotificationSent() }
+                notificationService?.sendNotification()
                 Log.i(tag, "Exiting NOTIFYING state")
             }
             State.WAITING -> {
+                notificationService = null
                 if (currentState != State.WAITING) {
                     Log.i(tag, "Entering WAITING state")
                     currentState = State.WAITING
