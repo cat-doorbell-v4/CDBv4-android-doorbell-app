@@ -36,7 +36,9 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
     private var cameraProvider: ProcessCameraProvider? = null
     private lateinit var cameraExecutor: ExecutorService
     private var cameraBound: Boolean = false
-
+    private var cameraStopped: Boolean = false
+    private val handler = Handler(Looper.getMainLooper())
+    private var timeoutRunnable: Runnable? = null
 
     init {
         // setupCamera() is not called here anymore
@@ -130,6 +132,7 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
             )
             Log.i(TAG, "Camera bound")
             cameraBound = true
+            cameraStopped = false
         } catch (e: Exception) {
             Log.e(TAG, "Error binding camera use cases: ${e.message}")
         }
@@ -147,16 +150,23 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
         imageHeight: Int,
         imageWidth: Int
     ) {
+        if (cameraStopped) {
+            Log.i(TAG, "Camera stopped, ignoring results")
+            return
+        }
+
         var catDetected = false
-        val handler = Handler(Looper.getMainLooper())
-        val timeoutRunnable = Runnable {
+
+        timeoutRunnable = Runnable {
             if (!catDetected) {
                 Log.i(TAG, "No cat detected within 45 seconds. Giving up.")
+                handler.removeCallbacks(timeoutRunnable!!)
+                stopCameraProcessing()
                 onCatSeen(false)
             }
         }
 
-        handler.postDelayed(timeoutRunnable, 45000) // 45 seconds
+        handler.postDelayed(timeoutRunnable!!, 45000) // 45 seconds
 
         if (results != null) {
             loop@ for (detection in results) {
@@ -165,7 +175,8 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
                     if (category.label.equals("cat", ignoreCase = true)) {
                         Log.d(TAG, "Cat seen!")
                         catDetected = true
-                        handler.removeCallbacks(timeoutRunnable)
+                        handler.removeCallbacks(timeoutRunnable!!)
+                        stopCameraProcessing()
                         onCatSeen(true)
                         break@loop
                     }
@@ -189,9 +200,15 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
 
     fun stopCamera() {
         Log.i(TAG, "Stopping camera")
+        stopCameraProcessing()
         Handler(Looper.getMainLooper()).post {
             cameraProvider?.unbindAll()
         }
         cameraBound = false
+    }
+
+    private fun stopCameraProcessing() {
+        cameraStopped = true
+        timeoutRunnable?.let { handler.removeCallbacks(it) }
     }
 }
