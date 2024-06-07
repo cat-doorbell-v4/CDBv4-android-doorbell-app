@@ -35,8 +35,8 @@ class StateMachine(private val context: Context) {
     }
 
     private fun onCatHeard() {
-        Log.i(tag, "Cat heard, transitioning to CAPTURING")
-        transitionTo(State.CAPTURING)
+        Log.i(tag, "Cat heard, transitioning to LOOKING")
+        transitionTo(State.LOOKING)
     }
 
     private fun onCatSeen(seen: Boolean) {
@@ -72,9 +72,9 @@ class StateMachine(private val context: Context) {
                 isWaitingScheduled = false
                 Log.i(tag, "Exiting LISTENING state")
             }
-            State.CAPTURING -> {
-                Log.i(tag, "Entering CAPTURING state")
-                currentState = State.CAPTURING
+            State.LOOKING -> {
+                Log.i(tag, "Entering LOOKING state")
+                currentState = State.LOOKING
                 soundDetectionService?.stopListening()
                 soundDetectionService = null
 
@@ -85,7 +85,7 @@ class StateMachine(private val context: Context) {
 
                 cameraService = CameraService(context) { onCatSeen(it) }
                 cameraService?.startCamera()
-                Log.i(tag, "Exiting CAPTURING state")
+                Log.i(tag, "Exiting LOOKING state")
             }
             State.NOTIFYING -> {
                 Log.i(tag, "Entering NOTIFYING state")
