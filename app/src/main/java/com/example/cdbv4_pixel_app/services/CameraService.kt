@@ -155,9 +155,6 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
             return
         }
 
-        // Start the timeout when results are being processed
-        startTimeout()
-
         if (results != null) {
             loop@ for (detection in results) {
                 for (category in detection.categories) {
@@ -184,6 +181,7 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
         if (!cameraBound) {
             Log.i(TAG, "Starting camera")
             setupCamera() // Setup camera when starting it
+            startTimeout()
         } else {
             Log.e(TAG, "Camera already bound")
         }
@@ -210,6 +208,7 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
         stopTimeout() // Clear any existing timeout before starting a new one
         timeoutRunnable = Runnable {
             Log.i(TAG, "No cat detected within 45 seconds. Giving up.")
+            stopCamera()
             onCatSeen(false)
         }.also { handler.postDelayed(it, 45000) }
     }
