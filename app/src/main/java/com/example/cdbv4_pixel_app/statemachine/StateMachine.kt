@@ -41,8 +41,8 @@ class StateMachine(private val context: Context) {
 
     private fun onCatSeen(seen: Boolean) {
         if (seen) {
-            Log.i(tag, "Cat seen, transitioning to NOTIFYING")
-            transitionTo(State.NOTIFYING)
+            Log.i(tag, "Cat seen, transitioning to RINGING")
+            transitionTo(State.RINGING)
         } else {
             Log.i(tag, "No cat seen, transitioning back to LISTENING")
             transitionTo(State.LISTENING)
@@ -87,9 +87,9 @@ class StateMachine(private val context: Context) {
                 cameraService?.startCamera()
                 Log.i(tag, "Exiting LOOKING state")
             }
-            State.NOTIFYING -> {
-                Log.i(tag, "Entering NOTIFYING state")
-                currentState = State.NOTIFYING
+            State.RINGING -> {
+                Log.i(tag, "Entering RINGING state")
+                currentState = State.RINGING
 
                 cameraService?.stopCamera()
                 cameraService = null
@@ -99,7 +99,7 @@ class StateMachine(private val context: Context) {
 
                 notificationService = NotificationService(context) { onNotificationSent() }
                 notificationService?.sendNotification()
-                Log.i(tag, "Exiting NOTIFYING state")
+                Log.i(tag, "Exiting RINGING state")
             }
             State.WAITING -> {
                 notificationService = null

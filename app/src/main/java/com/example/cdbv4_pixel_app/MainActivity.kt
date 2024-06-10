@@ -9,6 +9,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.cdbv4_pixel_app.statemachine.StateMachine
 
+/*
+Todo: Alert when running on battery only
+Todo: Alert on excessive temperature
+Todo: Send status for keep-alive every x min. Create new state for it.
+Todo: Set hostnames on each handset
+Todo: Modify the alert message to make sense on SMS
+Todo: Identify and handle low-light conditions
+ */
 class MainActivity : AppCompatActivity() {
     private val PERMISSIONS_REQUEST_CODE = 100
     private lateinit var stateMachine: StateMachine
