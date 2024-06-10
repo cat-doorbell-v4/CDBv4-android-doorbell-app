@@ -4,5 +4,6 @@ enum class State {
     LISTENING,
     LOOKING,
     RINGING,
-    WAITING
+    WAITING,
+    BEATING
 }

@@ -69,6 +69,7 @@ class StateMachine(private val context: Context) {
                 soundDetectionService = SoundDetectionService { onCatHeard() }
                 soundDetectionService?.initialize(context)
                 soundDetectionService?.startListening()
+                scheduleHeartbeat()
                 isWaitingScheduled = false
                 Log.i(tag, "Exiting LISTENING state")
             }
@@ -98,7 +99,7 @@ class StateMachine(private val context: Context) {
                 flashlightService = null
 
                 notificationService = NotificationService(context) { onNotificationSent() }
-                notificationService?.sendNotification()
+                notificationService?.sendNotification("ring")
                 Log.i(tag, "Exiting RINGING state")
             }
             State.WAITING -> {
@@ -116,6 +117,24 @@ class StateMachine(private val context: Context) {
                     }
                 }
             }
+            State.BEATING -> {
+                Log.i(tag, "Entering BEATING state")
+                currentState = State.BEATING
+                notificationService = NotificationService(context) {
+                    Log.i(tag, "Heartbeat notification sent")
+                    transitionTo(State.LISTENING)
+                }
+                notificationService?.sendNotification("heartbeat")
+                Log.i(tag, "Exiting BEATING state")
+            }
         }
+    }
+
+    private fun scheduleHeartbeat() {
+        handler.postDelayed({
+            if (currentState == State.LISTENING) {
+                transitionTo(State.BEATING)
+            }
+        }, 10 * 60 * 1000) // 10 minutes delay
     }
 }

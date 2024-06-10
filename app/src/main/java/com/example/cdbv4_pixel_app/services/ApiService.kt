@@ -3,8 +3,12 @@ package com.example.cdbv4_pixel_app.services
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface ApiService {
-    @POST("ring")
-    suspend fun sendAlert(@Body requestBody: CatAlertRequestBody): Response<Any>
+    @POST("{endpoint}")
+    suspend fun sendAlert(
+        @Path("endpoint") endpoint: String,
+        @Body requestBody: CatAlertRequestBody
+    ): Response<Any>
 }
