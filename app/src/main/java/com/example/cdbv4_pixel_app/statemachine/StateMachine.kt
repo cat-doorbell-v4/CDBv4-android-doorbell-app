@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.example.cdbv4_pixel_app.MyApplication
 import com.example.cdbv4_pixel_app.services.CameraService
 import com.example.cdbv4_pixel_app.services.FlashlightService
 import com.example.cdbv4_pixel_app.services.NotificationService
@@ -99,7 +100,7 @@ class StateMachine(private val context: Context) {
                 flashlightService = null
 
                 notificationService = NotificationService(context) { onNotificationSent() }
-                notificationService?.sendNotification("ring")
+                MyApplication.deviceName?.let { notificationService?.sendNotification("ring", it) }
                 Log.i(tag, "Exiting RINGING state")
             }
             State.WAITING -> {
@@ -124,7 +125,12 @@ class StateMachine(private val context: Context) {
                     Log.i(tag, "Heartbeat notification sent")
                     transitionTo(State.LISTENING)
                 }
-                notificationService?.sendNotification("heartbeat")
+                MyApplication.deviceName?.let {
+                    notificationService?.sendNotification(
+                        "heartbeat",
+                        it
+                    )
+                }
                 Log.i(tag, "Exiting BEATING state")
             }
         }

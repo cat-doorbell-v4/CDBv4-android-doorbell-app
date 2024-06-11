@@ -18,11 +18,10 @@ class NotificationService(
 
     private val service = retrofit.create(ApiService::class.java)
 
-    fun sendNotification(endpoint: String) {
-        val requestBody = CatAlertRequestBody("Cat detected", System.currentTimeMillis())
-
+    fun sendNotification(endpoint: String, hostname: String) {
         GlobalScope.launch {
-            val response = service.sendAlert(endpoint, requestBody)
+            val response = service.sendAlert(endpoint, hostname)
+
             // Handle response if needed
             onNotificationSent(response.isSuccessful)
         }

@@ -9,6 +9,6 @@ interface ApiService {
     @POST("{endpoint}")
     suspend fun sendAlert(
         @Path("endpoint") endpoint: String,
-        @Body requestBody: CatAlertRequestBody
+        @Body hostname: String
     ): Response<Any>
 }
