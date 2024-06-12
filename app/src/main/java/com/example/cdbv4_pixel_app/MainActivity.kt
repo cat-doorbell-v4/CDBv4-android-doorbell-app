@@ -1,6 +1,9 @@
 package com.example.cdbv4_pixel_app
 
 import android.Manifest
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -19,17 +22,29 @@ Todo: Make sure app starts on reboot and also goes to the foreground
 Todo: Write significant events to the UI in the form of a circular log
 Todo: Is there any way to turn the device buttons off?
 Todo: Get log monitoring working
+ToDo: Put some unique build number or something in the UI to help track versions
  */
 
 
 class MainActivity : AppCompatActivity() {
     private val PERMISSIONS_REQUEST_CODE = 100
     private lateinit var stateMachine: StateMachine
+    private lateinit var devicePolicyManager: DevicePolicyManager
+    private lateinit var adminComponent: ComponentName
+
     private val TAG = "MainActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        adminComponent = ComponentName(this, YourDeviceAdminReceiver::class.java)
+
+        if (devicePolicyManager.isDeviceOwnerApp(packageName)) {
+            devicePolicyManager.setLockTaskPackages(adminComponent, arrayOf(packageName))
+            startLockTask()
+        }
 
         if (hasPermissions()) {
             Log.i(TAG, "We have permissions")
@@ -80,6 +95,12 @@ class MainActivity : AppCompatActivity() {
                 finish() // Optionally close the app if permissions are not granted
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Ensure lock task mode is re-enabled when activity resumes
+        startLockTask()
     }
 
     override fun onDestroy() {
