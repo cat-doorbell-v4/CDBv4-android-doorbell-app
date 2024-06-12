@@ -10,13 +10,18 @@ import androidx.core.content.ContextCompat
 import com.example.cdbv4_pixel_app.statemachine.StateMachine
 
 /*
+Todo: Save a local (circular) log for forensics. Keep on UI?
 Todo: Alert when running on battery only
 Todo: Alert on excessive temperature
-Todo: Send status for keep-alive every x min. Create new state for it.
-Todo: Set hostnames on each handset
-Todo: Modify the alert message to make sense on SMS
 Todo: Identify and handle low-light conditions
+Todo: Send pic from camera when meow identified, but no cat seen
+Todo: Make sure app starts on reboot and also goes to the foreground
+Todo: Write significant events to the UI in the form of a circular log
+Todo: Is there any way to turn the device buttons off?
+Todo: Get log monitoring working
  */
+
+
 class MainActivity : AppCompatActivity() {
     private val PERMISSIONS_REQUEST_CODE = 100
     private lateinit var stateMachine: StateMachine
