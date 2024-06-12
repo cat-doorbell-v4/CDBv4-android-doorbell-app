@@ -133,8 +133,39 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
             Log.i(TAG, "Camera bound")
             cameraBound = true
             cameraStopped = false
+
+            // Check and enable flashlight in low light conditions
+            enableFlashlightIfNeeded()
+
         } catch (e: Exception) {
             Log.e(TAG, "Error binding camera use cases: ${e.message}")
+        }
+    }
+
+    private fun enableFlashlightIfNeeded() {
+        val cameraProvider = cameraProvider ?: return
+        val camera = cameraProvider.bindToLifecycle(
+            context as LifecycleOwner,
+            CameraSelector.DEFAULT_BACK_CAMERA
+        )
+
+        val cameraInfo = camera.cameraInfo
+        val cameraControl = camera.cameraControl
+
+        val exposureState = cameraInfo.exposureState
+        val aeState = exposureState.exposureCompensationIndex
+
+        // Define the threshold for low light conditions
+        val lowLightThreshold = Constants.LOW_LIGHT_THRESHOLD
+
+        if (aeState <= lowLightThreshold) {
+            // Enable the flashlight
+            cameraControl.enableTorch(true)
+            Log.i(TAG, "Flashlight enabled due to low light conditions")
+        } else {
+            // Disable the flashlight
+            cameraControl.enableTorch(false)
+            Log.i(TAG, "Flashlight disabled")
         }
     }
 
