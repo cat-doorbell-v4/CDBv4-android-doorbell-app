@@ -6,7 +6,6 @@ import android.os.Looper
 import android.util.Log
 import com.example.cdbv4_pixel_app.MyApplication
 import com.example.cdbv4_pixel_app.services.CameraService
-import com.example.cdbv4_pixel_app.services.FlashlightService
 import com.example.cdbv4_pixel_app.services.NotificationService
 import com.example.cdbv4_pixel_app.services.SoundDetectionService
 
@@ -17,7 +16,6 @@ class StateMachine(private val context: Context) {
 
     private var soundDetectionService: SoundDetectionService? = null
     private var cameraService: CameraService? = null
-    private var flashlightService: FlashlightService? = null
     private var notificationService: NotificationService? = null
 
     private val tag = "StateMachine"
@@ -55,9 +53,12 @@ class StateMachine(private val context: Context) {
         transitionTo(State.WAITING)
     }
 
-    private fun isLowLight(): Boolean {
-        // Implement low-light detection logic
-        return false
+    private fun scheduleHeartbeat() {
+        handler.postDelayed({
+            if (currentState == State.LISTENING) {
+                transitionTo(State.BEATING)
+            }
+        }, 10 * 60 * 1000) // 10 minutes delay
     }
 
     private fun transitionTo(newState: State) {
@@ -79,12 +80,6 @@ class StateMachine(private val context: Context) {
                 currentState = State.LOOKING
                 soundDetectionService?.stopListening()
                 soundDetectionService = null
-
-                flashlightService = FlashlightService(context)
-                if (isLowLight()) {
-                    flashlightService?.turnOn()
-                }
-
                 cameraService = CameraService(context) { onCatSeen(it) }
                 cameraService?.startCamera()
                 Log.i(tag, "Exiting LOOKING state")
@@ -95,9 +90,6 @@ class StateMachine(private val context: Context) {
 
                 cameraService?.stopCamera()
                 cameraService = null
-
-                flashlightService?.turnOff()
-                flashlightService = null
 
                 notificationService = NotificationService(context) { onNotificationSent() }
                 MyApplication.deviceName?.let { notificationService?.sendNotification("ring", it) }
@@ -134,13 +126,5 @@ class StateMachine(private val context: Context) {
                 Log.i(tag, "Exiting BEATING state")
             }
         }
-    }
-
-    private fun scheduleHeartbeat() {
-        handler.postDelayed({
-            if (currentState == State.LISTENING) {
-                transitionTo(State.BEATING)
-            }
-        }, 10 * 60 * 1000) // 10 minutes delay
     }
 }
