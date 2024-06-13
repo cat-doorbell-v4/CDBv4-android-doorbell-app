@@ -5,8 +5,12 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowInsets
+import android.view.WindowInsetsController
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -34,17 +38,10 @@ class MainActivity : AppCompatActivity() {
 
     private val TAG = "MainActivity"
 
+    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        adminComponent = ComponentName(this, DoorbellDeviceAdminReceiver::class.java)
-
-        if (devicePolicyManager.isDeviceOwnerApp(packageName)) {
-            devicePolicyManager.setLockTaskPackages(adminComponent, arrayOf(packageName))
-            startLockTask()
-        }
 
         if (hasPermissions()) {
             Log.i(TAG, "We have permissions")
@@ -52,6 +49,40 @@ class MainActivity : AppCompatActivity() {
         } else {
             Log.i(TAG, "We do not yet have permissions")
             requestPermissions()
+        }
+
+        val devicePolicyManager =
+            getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val componentName = ComponentName(this, DoorbellDeviceAdminReceiver::class.java)
+        devicePolicyManager.setKeyguardDisabled(componentName, true)
+
+        if (isLockTaskPermitted(this)) {
+            startLockTask()
+        }
+
+        hideSystemUI()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun hideSystemUI() {
+        window.insetsController?.let {
+            it.hide(WindowInsets.Type.systemBars())
+            it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+    }
+
+    private fun isLockTaskPermitted(context: Context): Boolean {
+        val devicePolicyManager =
+            context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val packageName = context.packageName
+        return devicePolicyManager.isLockTaskPermitted(packageName)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideSystemUI()
         }
     }
 
