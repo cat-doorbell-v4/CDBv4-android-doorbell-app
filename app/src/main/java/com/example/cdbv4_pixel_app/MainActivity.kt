@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -57,8 +58,18 @@ class MainActivity : AppCompatActivity() {
         acquireWakeLock()
         setForeground()
         disableKeyguard()
-
+        // Prevent the screen from turning off
+        setTurnScreenOn(true)
+        setShowWhenLocked(true)
         initializeStateMachine()
+    }
+
+    private fun screenOn() {
+        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        filter.addAction(Intent.ACTION_SCREEN_ON)
+        val receiver = ScreenReceiver()
+        registerReceiver(receiver, filter)
+
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -130,6 +141,10 @@ class MainActivity : AppCompatActivity() {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
             hideSystemUI()
+        } else {
+            val intent = Intent(applicationContext, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            applicationContext.startActivity(intent)
         }
     }
 
