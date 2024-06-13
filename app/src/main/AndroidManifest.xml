@@ -48,7 +48,7 @@
         </receiver>
 
         <receiver
-            android:name=".YourDeviceAdminReceiver"
+            android:name=".DoorbellDeviceAdminReceiver"
             android:exported="true"
             android:permission="android.permission.BIND_DEVICE_ADMIN">
             <meta-data

@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        adminComponent = ComponentName(this, YourDeviceAdminReceiver::class.java)
+        adminComponent = ComponentName(this, DoorbellDeviceAdminReceiver::class.java)
 
         if (devicePolicyManager.isDeviceOwnerApp(packageName)) {
             devicePolicyManager.setLockTaskPackages(adminComponent, arrayOf(packageName))
