@@ -1,40 +1,42 @@
 package com.example.cdbv4_pixel_app
 
 import android.Manifest
+import android.app.KeyguardManager
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.util.Log
+import android.view.KeyEvent
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.cdbv4_pixel_app.services.ForegroundService
 import com.example.cdbv4_pixel_app.statemachine.StateMachine
 
 /*
 Todo: Save a local (circular) log for forensics. Keep on UI?
 Todo: Alert when running on battery only
 Todo: Alert on excessive temperature
-Todo: Identify and handle low-light conditions
 Todo: Send pic from camera when meow identified, but no cat seen
-Todo: Make sure app starts on reboot and also goes to the foreground
-Todo: Write significant events to the UI in the form of a circular log
 Todo: Is there any way to turn the device buttons off?
-Todo: Get log monitoring working
-ToDo: Put some unique build number or something in the UI to help track versions
- */
+Todo: Get AWS log monitoring working
+ToDo: Put some unique value (build #?) in UI
+*/
 
 
 class MainActivity : AppCompatActivity() {
     private val PERMISSIONS_REQUEST_CODE = 100
     private lateinit var stateMachine: StateMachine
-    private lateinit var devicePolicyManager: DevicePolicyManager
-    private lateinit var adminComponent: ComponentName
+    private lateinit var wakeLock: PowerManager.WakeLock
 
     private val TAG = "MainActivity"
 
@@ -61,6 +63,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         hideSystemUI()
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // Acquire WakeLock
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock =
+            powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::CatDoorbellWakeLock")
+        wakeLock.acquire()
+
+        // Set the activity to show when locked and turn the screen on
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
+
+        // Dismiss the keyguard if necessary
+        val keyguardManager = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
+        keyguardManager.requestDismissKeyguard(this, null)
+
+        // Start the foreground service
+        val serviceIntent = Intent(this, ForegroundService::class.java)
+        startForegroundService(serviceIntent)
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -70,6 +92,27 @@ class MainActivity : AppCompatActivity() {
             it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_POWER -> {
+                // Handle button press here
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_POWER -> {
+                // Handle button release here
+                return true
+            }
+        }
+        return super.onKeyUp(keyCode, event)
+    }
+
 
     private fun isLockTaskPermitted(context: Context): Boolean {
         val devicePolicyManager =
@@ -138,6 +181,9 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         if (::stateMachine.isInitialized) {
             stateMachine.stop()
+        }
+        if (wakeLock.isHeld) {
+            wakeLock.release()
         }
     }
 }
