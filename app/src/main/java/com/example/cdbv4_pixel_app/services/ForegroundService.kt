@@ -5,42 +5,54 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
+import androidx.core.app.NotificationCompat
+import com.example.cdbv4_pixel_app.R
+import com.example.cdbv4_pixel_app.statemachine.StateMachine
 
 class ForegroundService : Service() {
+    private lateinit var wakeLock: PowerManager.WakeLock
+    private lateinit var stateMachine: StateMachine
 
     override fun onCreate() {
         super.onCreate()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "CatDoorbellServiceChannel",
-                "Cat Doorbell Service Channel",
-                NotificationManager.IMPORTANCE_DEFAULT
+        val notificationChannelId = "CAT_DOORBELL_CHANNEL"
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val chan = NotificationChannel(
+                notificationChannelId,
+                "Cat Doorbell Service",
+                NotificationManager.IMPORTANCE_MIN
             )
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            manager.createNotificationChannel(chan)
         }
-    }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, "CatDoorbellServiceChannel")
-                .setContentTitle("Cat Doorbell Running")
-                .setContentText("Listening for your cat...")
-                .setSmallIcon(android.R.drawable.ic_menu_info_details)  // Use a built-in icon
-                .build()
-        } else {
-            Notification.Builder(this)
-                .setContentTitle("Cat Doorbell Running")
-                .setContentText("Listening for your cat...")
-                .setSmallIcon(android.R.drawable.ic_menu_info_details)  // Use a built-in icon
-                .build()
-        }
+        val notification: Notification = NotificationCompat.Builder(this, notificationChannelId)
+            .setContentTitle("")
+            .setContentText("")
+            .setSmallIcon(R.drawable.transparent_icon) // Use the transparent icon
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setOngoing(true)
+            .build()
 
         startForeground(1, notification)
 
-        return START_NOT_STICKY
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "CatDoorbell::WakeLock")
+        wakeLock.acquire()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Start your cat listening logic here if needed
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        wakeLock.release()
+        stateMachine.stop()
     }
 
     override fun onBind(intent: Intent?): IBinder? {

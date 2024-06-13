@@ -1,7 +1,6 @@
 package com.example.cdbv4_pixel_app
 
 import android.Manifest
-import android.app.KeyguardManager
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -45,44 +44,49 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (hasPermissions()) {
-            Log.i(TAG, "We have permissions")
-            initializeStateMachine()
-        } else {
+        if (!hasPermissions()) {
             Log.i(TAG, "We do not yet have permissions")
             requestPermissions()
         }
-
-        val devicePolicyManager =
-            getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        val componentName = ComponentName(this, DoorbellDeviceAdminReceiver::class.java)
-        devicePolicyManager.setKeyguardDisabled(componentName, true)
 
         if (isLockTaskPermitted(this)) {
             startLockTask()
         }
 
         hideSystemUI()
+        acquireWakeLock()
+        setForeground()
+        disableKeyguard()
 
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        initializeStateMachine()
+    }
 
-        // Acquire WakeLock
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock =
-            powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::CatDoorbellWakeLock")
-        wakeLock.acquire()
-
-        // Set the activity to show when locked and turn the screen on
-        setShowWhenLocked(true)
-        setTurnScreenOn(true)
-
-        // Dismiss the keyguard if necessary
-        val keyguardManager = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
-        keyguardManager.requestDismissKeyguard(this, null)
-
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun setForeground() {
         // Start the foreground service
         val serviceIntent = Intent(this, ForegroundService::class.java)
         startForegroundService(serviceIntent)
+    }
+
+    private fun acquireWakeLock() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
+        window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+        window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "MyApp::MyWakelockTag"
+        )
+        wakeLock.acquire()
+    }
+
+    private fun disableKeyguard() {
+        val devicePolicyManager =
+            getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val componentName = ComponentName(this, DoorbellDeviceAdminReceiver::class.java)
+        devicePolicyManager.setKeyguardDisabled(componentName, true)
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
