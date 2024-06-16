@@ -27,9 +27,10 @@ Todo: Save a local (circular) log for forensics. Keep on UI?
 Todo: Alert when running on battery only
 Todo: Alert on excessive temperature
 Todo: Send pic from camera when meow identified, but no cat seen
-Todo: Is there any way to turn the device buttons off?
 Todo: Get AWS log monitoring working
 ToDo: Put some unique value (build #?) in UI
+ToDo: Put the device names and URLs in an encrypted config/constants file
+ToDo: Document in pictures and descriptions what I have done.
 */
 
 
