@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.cdbv4_pixel_app.services.ForegroundService
+import com.example.cdbv4_pixel_app.services.LogcatService
 import com.example.cdbv4_pixel_app.statemachine.StateMachine
 
 /*
@@ -45,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        startLogging()
 
         if (!hasPermissions()) {
             Log.i(TAG, "We do not yet have permissions")
@@ -63,6 +65,18 @@ class MainActivity : AppCompatActivity() {
         setTurnScreenOn(true)
         setShowWhenLocked(true)
         initializeStateMachine()
+    }
+
+    private fun startLogging() {
+        // Start the LogcatService
+        val serviceIntent = Intent(this, LogcatService::class.java)
+        startService(serviceIntent)
+        Log.i(TAG, "LogcatService started")
+    }
+
+    private fun stopLogging() {
+        val serviceIntent = Intent(this, LogcatService::class.java)
+        stopService(serviceIntent)
     }
 
     private fun screenOn() {
@@ -197,6 +211,7 @@ class MainActivity : AppCompatActivity() {
         startLockTask()
     }
 
+
     override fun onDestroy() {
         super.onDestroy()
         if (::stateMachine.isInitialized) {
@@ -205,5 +220,6 @@ class MainActivity : AppCompatActivity() {
         if (wakeLock.isHeld) {
             wakeLock.release()
         }
+        stopLogging()
     }
 }
