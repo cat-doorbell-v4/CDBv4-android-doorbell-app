@@ -49,8 +49,8 @@ class StateMachine(private val context: Context) {
     }
 
     private fun onNotificationSent() {
-        Log.i(tag, "Notification sent, transitioning to WAITING")
-        transitionTo(State.WAITING)
+        Log.i(tag, "Notification sent, transitioning to PAUSING")
+        transitionTo(State.PAUSING)
     }
 
     private fun scheduleHeartbeat() {
@@ -95,18 +95,18 @@ class StateMachine(private val context: Context) {
                 MyApplication.deviceName?.let { notificationService?.sendNotification("ring", it) }
                 Log.i(tag, "Exiting RINGING state")
             }
-            State.WAITING -> {
+            State.PAUSING -> {
                 notificationService = null
-                if (currentState != State.WAITING) {
-                    Log.i(tag, "Entering WAITING state")
-                    currentState = State.WAITING
+                if (currentState != State.PAUSING) {
+                    Log.i(tag, "Entering PAUSING state")
+                    currentState = State.PAUSING
                     if (!isWaitingScheduled) {
                         isWaitingScheduled = true
                         handler.postDelayed({
-                            Log.i(tag, "WAITING state over, transitioning to LISTENING")
+                            Log.i(tag, "PAUSING state over, transitioning to LISTENING")
                             transitionTo(State.LISTENING)
                         }, 2 * 60 * 1000) // 2 minutes delay
-                        Log.i(tag, "Handler posted for WAITING state")
+                        Log.i(tag, "Handler posted for PAUSING state")
                     }
                 }
             }
