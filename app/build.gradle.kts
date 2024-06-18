@@ -24,6 +24,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Add ABI filters to restrict builds to specific architectures
+        ndk {
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+        }
     }
 
     buildTypes {
@@ -41,6 +46,12 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")  // Ensure the directory is correct
+        }
     }
 }
 
@@ -69,21 +80,32 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    implementation("org.tensorflow:tensorflow-lite:2.12.0")
-    implementation("org.tensorflow:tensorflow-lite-gpu:2.12.0")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.2")
-    implementation("org.tensorflow:tensorflow-lite-task-audio:0.4.2")
-    implementation("org.tensorflow:tensorflow-lite-task-vision:0.4.2")
+    implementation(libs.tensorflow.lite)
+    implementation(libs.tensorflow.lite.gpu)
+    implementation(libs.tensorflow.lite.support)
+    implementation(libs.tensorflow.lite.task.audio)
+    implementation(libs.tensorflow.lite.task.vision)
+    implementation(libs.tensorflow.lite.task.vision.v020)
 
-    implementation("androidx.camera:camera-core:1.1.0")
-    implementation("androidx.camera:camera-camera2:1.1.0")
-    implementation("androidx.camera:camera-lifecycle:1.1.0")
-    implementation("androidx.camera:camera-view:1.3.3")
 
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation("com.squareup.okhttp3:okhttp:4.9.0")
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 
-    implementation("androidx.lifecycle:lifecycle-service:2.5.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.okhttp)
+
+    implementation(libs.androidx.lifecycle.service)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+}
+
+// Add Proguard rules to prevent native libraries from being removed
+android {
+    buildTypes {
+        release {
+            proguardFiles.add(file("proguard-rules.pro"))
+        }
+    }
 }

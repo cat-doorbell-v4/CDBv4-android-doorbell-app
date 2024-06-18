@@ -45,6 +45,11 @@
             android:exported="false"
             android:foregroundServiceType="camera" />
 
+        <service
+            android:name=".services.LogcatService"
+            android:enabled="true"
+            android:exported="false" />
+
         <receiver
             android:name=".ScreenReceiver"
             android:exported="true">
