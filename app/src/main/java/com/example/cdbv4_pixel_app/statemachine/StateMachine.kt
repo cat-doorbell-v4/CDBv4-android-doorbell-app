@@ -11,9 +11,8 @@ import com.example.cdbv4_pixel_app.services.SoundDetectionService
 
 class StateMachine(private val context: Context) {
 
-    private var currentState: State = State.LISTENING
+    private var currentState: State = State.INITIALIZING
     private var isWaitingScheduled = false
-
     private var soundDetectionService: SoundDetectionService? = null
     private var cameraService: CameraService? = null
     private var notificationService: NotificationService? = null
@@ -35,22 +34,38 @@ class StateMachine(private val context: Context) {
 
     private fun onCatHeard() {
         Log.i(tag, "Cat heard, transitioning to LOOKING")
-        transitionTo(State.LOOKING)
+        if (currentState == State.LISTENING) {
+            transitionTo(State.LOOKING)
+        } else {
+            Log.w(tag, "Ignored cat heard event while in state: $currentState")
+        }
     }
 
     private fun onCatSeen(seen: Boolean) {
         if (seen) {
             Log.i(tag, "Cat seen, transitioning to RINGING")
-            transitionTo(State.RINGING)
+            if (currentState == State.LOOKING) {
+                transitionTo(State.RINGING)
+            } else {
+                Log.w(tag, "Ignored cat seen event while in state: $currentState")
+            }
         } else {
             Log.i(tag, "No cat seen, transitioning back to LISTENING")
-            transitionTo(State.LISTENING)
+            if (currentState == State.LOOKING) {
+                transitionTo(State.LISTENING)
+            } else {
+                Log.w(tag, "Ignored no cat seen event while in state: $currentState")
+            }
         }
     }
 
     private fun onNotificationSent() {
         Log.i(tag, "Notification sent, transitioning to PAUSING")
-        transitionTo(State.PAUSING)
+        if (currentState == State.RINGING) {
+            transitionTo(State.PAUSING)
+        } else {
+            Log.w(tag, "Ignored notification sent event while in state: $currentState")
+        }
     }
 
     private fun scheduleHeartbeat() {
@@ -63,6 +78,11 @@ class StateMachine(private val context: Context) {
 
     private fun transitionTo(newState: State) {
         Log.i(tag, "Transitioning from $currentState to $newState")
+
+        if (currentState == newState) {
+            Log.w(tag, "Already in state: $newState, ignoring transition")
+            return
+        }
 
         when (newState) {
             State.LISTENING -> {
@@ -124,6 +144,9 @@ class StateMachine(private val context: Context) {
                     )
                 }
                 Log.i(tag, "Exiting BEATING state")
+            }
+            State.INITIALIZING -> {
+                // Do nothing, just a placeholder state
             }
         }
     }
