@@ -7,6 +7,8 @@ import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
+import java.text.SimpleDateFormat
+import java.util.Date
 
 class LogcatService : Service() {
 
@@ -56,7 +58,9 @@ class LogcatService : Service() {
     }
 
     private fun createNewLogFile(): FileOutputStream {
-        currentLogFile = File(logDir, "${Constants.LOG_PREFIX}-${System.currentTimeMillis()}.log")
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss")
+        val currentTime = dateFormat.format(Date())
+        currentLogFile = File(logDir, "${Constants.LOG_PREFIX}-${currentTime}.log")
         Log.i("LogcatService", "New log: $currentLogFile")
         return FileOutputStream(currentLogFile, true)
     }
