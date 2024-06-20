@@ -91,10 +91,13 @@ class StateMachine(private val context: Context) {
                 soundDetectionService = SoundDetectionService { onCatHeard() }
                 soundDetectionService?.initialize(context)
                 soundDetectionService?.startListening()
+                Log.i(tag, "Sound detection service started")
                 scheduleHeartbeat()
+                Log.i(tag, "Heartbeat scheduled")
                 isWaitingScheduled = false
-                Log.i(tag, "Exiting LISTENING state")
+                Log.i(tag, "Setup complete for LISTENING state")
             }
+
             State.LOOKING -> {
                 Log.i(tag, "Entering LOOKING state")
                 currentState = State.LOOKING
