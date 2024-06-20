@@ -32,7 +32,9 @@ class ObjectDetectorHelper(
         objectDetector = null
     }
 
-    fun setupObjectDetector() {
+    private fun setupObjectDetector() {
+        if (objectDetector != null) return
+
         val optionsBuilder = ObjectDetector.ObjectDetectorOptions.builder()
             .setScoreThreshold(threshold)
             .setMaxResults(maxResults)
@@ -70,8 +72,8 @@ class ObjectDetectorHelper(
             objectDetector =
                 ObjectDetector.createFromFileAndOptions(context, modelName, optionsBuilder.build())
         } catch (e: IllegalStateException) {
-            objectDetectorListener?.onError("Object detector failed to initialize. See error logs for details")
-            Log.e("ObjectDetectorHelper", "TFLite failed to load model with error: " + e.message)
+            objectDetectorListener?.onError("Object detector failed to initialize: ${e.message}")
+            Log.e("ObjectDetectorHelper", "TFLite failed to load model: ${e.message}")
         }
     }
 

@@ -34,7 +34,7 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
     private lateinit var bitmapBuffer: Bitmap
     private var imageAnalyzer: ImageAnalysis? = null
     private var cameraProvider: ProcessCameraProvider? = null
-    private lateinit var cameraExecutor: ExecutorService
+    private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var cameraBound: Boolean = false
     private var cameraStopped: Boolean = false
     private val handler = Handler(Looper.getMainLooper())
@@ -46,7 +46,6 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
 
     @SuppressLint("MissingPermission")
     private fun setupCamera() {
-        cameraExecutor = Executors.newSingleThreadExecutor()
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             try {
@@ -225,6 +224,7 @@ class CameraService(private val context: Context, private val onCatSeen: (Boolea
         Handler(Looper.getMainLooper()).post {
             cameraProvider?.unbindAll()
         }
+        cameraExecutor.shutdown() // Ensure the executor service is shut down
         cameraBound = false
     }
 
