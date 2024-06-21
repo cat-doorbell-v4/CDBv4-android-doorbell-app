@@ -33,7 +33,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -101,11 +101,3 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
 }
 
-// Add Proguard rules to prevent native libraries from being removed
-android {
-    buildTypes {
-        release {
-            proguardFiles.add(file("proguard-rules.pro"))
-        }
-    }
-}
