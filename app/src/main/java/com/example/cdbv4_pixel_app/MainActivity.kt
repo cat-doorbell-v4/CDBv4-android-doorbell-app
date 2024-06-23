@@ -9,27 +9,31 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
+import android.view.GestureDetector
 import android.view.KeyEvent
-import android.view.WindowInsets
-import android.view.WindowInsetsController
+import android.view.MotionEvent
+import android.view.View
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.example.cdbv4_pixel_app.services.ForegroundService
+import com.example.cdbv4_pixel_app.services.LaunchService
 import com.example.cdbv4_pixel_app.services.LogcatService
 import com.example.cdbv4_pixel_app.statemachine.StateMachine
 
 /*
-Todo: Save a local (circular) log for forensics. Keep on UI?
 Todo: Alert when running on battery only
 Todo: Alert on excessive temperature
 Todo: Send pic from camera when meow identified, but no cat seen
 Todo: Get AWS log monitoring working
-ToDo: Put some unique value (build #?) in UI
 ToDo: Put the device names and URLs in an encrypted config/constants file
 ToDo: Document in pictures and descriptions what I have done.
 */
@@ -39,6 +43,8 @@ class MainActivity : AppCompatActivity() {
     private val PERMISSIONS_REQUEST_CODE = 100
     private lateinit var stateMachine: StateMachine
     private lateinit var wakeLock: PowerManager.WakeLock
+    private lateinit var gestureDetector: GestureDetector
+
 
     private val TAG = "MainActivity"
 
@@ -47,17 +53,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         startLogging()
-
-        if (!hasPermissions()) {
-            Log.i(TAG, "We do not yet have permissions")
-            requestPermissions()
-        }
-
+        checkAndRequestPermissions()
+        adminBackdoorUnlock()
         if (isLockTaskPermitted(this)) {
             startLockTask()
         }
-
-        hideSystemUI()
         acquireWakeLock()
         setForeground()
         disableKeyguard()
@@ -65,6 +65,76 @@ class MainActivity : AppCompatActivity() {
         setTurnScreenOn(true)
         setShowWhenLocked(true)
         initializeStateMachine()
+    }
+
+    private fun adminBackdoorUnlock() {
+        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                Log.d("AdminBackdoor", "Double tap detected")
+
+                // Exit kiosk mode
+                try {
+                    runOnUiThread {
+                        stopLockTask()
+                        Log.d("AdminBackdoor", "Exited kiosk mode")
+                    }
+
+                    // Delay launching the Service to ensure lock task has stopped
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        try {
+                            // Start a service to launch Settings
+                            val serviceIntent = Intent(this@MainActivity, LaunchService::class.java)
+                            startService(serviceIntent)
+                            Log.d("AdminBackdoor", "Started LaunchService")
+                        } catch (e: Exception) {
+                            Log.e("AdminBackdoor", "Error starting service: ${e.message}")
+                        }
+                    }, 500) // Delay by 500 milliseconds
+
+                } catch (e: Exception) {
+                    Log.e("AdminBackdoor", "Error exiting kiosk mode: ${e.message}")
+                }
+
+                return true
+            }
+
+            override fun onDoubleTapEvent(e: MotionEvent): Boolean {
+                Log.d("AdminBackdoor", "Double tap event detected")
+                return super.onDoubleTapEvent(e)
+            }
+        })
+
+        // Set an onTouchListener on the root view to listen for touch events
+        val contentView: View = findViewById(android.R.id.content)
+        contentView.setOnTouchListener { v, event ->
+            val result = gestureDetector.onTouchEvent(event)
+            // Call performClick if the touch event is a click
+            if (result) {
+                v.performClick()
+            }
+            result
+        }
+
+        // Set a click listener to satisfy the accessibility warning
+        contentView.setOnClickListener {
+            // Handle click if needed
+        }
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        return gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideSystemUI()
+        } else {
+            val intent = Intent(applicationContext, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            applicationContext.startActivity(intent)
+        }
     }
 
     private fun startLogging() {
@@ -117,10 +187,10 @@ class MainActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun hideSystemUI() {
-        window.insetsController?.let {
-            it.hide(WindowInsets.Type.systemBars())
-            it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
+        val windowInsetsController = WindowInsetsControllerCompat(window, window.decorView)
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -151,59 +221,46 @@ class MainActivity : AppCompatActivity() {
         return devicePolicyManager.isLockTaskPermitted(packageName)
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            hideSystemUI()
-        } else {
-            val intent = Intent(applicationContext, MainActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            applicationContext.startActivity(intent)
-        }
-    }
-
-    private fun hasPermissions(): Boolean {
-        val permissions = arrayOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.CAMERA
-        )
-        return permissions.all {
-            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    private fun requestPermissions() {
-        val permissions = arrayOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.CAMERA
-        )
-        ActivityCompat.requestPermissions(this, permissions, PERMISSIONS_REQUEST_CODE)
-    }
-
     private fun initializeStateMachine() {
         stateMachine = StateMachine(this)
         stateMachine.start()
     }
 
+    private fun checkAndRequestPermissions() {
+        val permissions = arrayOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.CAMERA,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.ACCESS_NETWORK_STATE
+        )
+
+        val permissionsToRequest = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, permissionsToRequest.toTypedArray(), 1)
+        } else {
+            Log.d(TAG, "All permissions are already granted")
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
-        permissions: Array<out String>,
+        permissions: Array<String>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                Log.i(TAG, "All required permissions are granted")
-                initializeStateMachine()
+                Log.d(TAG, "All requested permissions granted")
             } else {
-                Log.e(TAG, "Permissions NOT granted! Exiting")
-                // Handle the case where permissions are not granted
-                // Optionally show a message to the user and close the app
-                finish() // Optionally close the app if permissions are not granted
+                Log.d(TAG, "Some permissions are denied")
             }
         }
     }
+
 
     override fun onResume() {
         super.onResume()

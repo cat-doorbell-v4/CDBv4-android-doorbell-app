@@ -11,8 +11,7 @@ import com.example.cdbv4_pixel_app.services.SoundDetectionService
 
 class StateMachine(private val context: Context) {
 
-    private var currentState: State = State.INITIALIZING
-    private var isWaitingScheduled = false
+    private var currentState: State = State.INIT
     private var soundDetectionService: SoundDetectionService? = null
     private var cameraService: CameraService? = null
     private var notificationService: NotificationService? = null
@@ -23,19 +22,18 @@ class StateMachine(private val context: Context) {
 
     fun start() {
         Log.i(tag, "Starting state machine")
-        transitionTo(State.LISTENING)
+        transitionTo(State.LISTEN)
     }
 
     fun stop() {
         Log.i(tag, "Stopping state machine")
         handler.removeCallbacksAndMessages(null)
-        isWaitingScheduled = false
     }
 
     private fun onCatHeard() {
-        Log.i(tag, "Cat heard, transitioning to LOOKING")
-        if (currentState == State.LISTENING) {
-            transitionTo(State.LOOKING)
+        Log.i(tag, "Cat heard, transitioning to LOOK")
+        if (currentState == State.LISTEN) {
+            transitionTo(State.LOOK)
         } else {
             Log.w(tag, "Ignored cat heard event while in state: $currentState")
         }
@@ -43,16 +41,16 @@ class StateMachine(private val context: Context) {
 
     private fun onCatSeen(seen: Boolean) {
         if (seen) {
-            Log.i(tag, "Cat seen, transitioning to RINGING")
-            if (currentState == State.LOOKING) {
-                transitionTo(State.RINGING)
+            Log.i(tag, "Cat seen, transitioning to RING")
+            if (currentState == State.LOOK) {
+                transitionTo(State.RING)
             } else {
                 Log.w(tag, "Ignored cat seen event while in state: $currentState")
             }
         } else {
-            Log.i(tag, "No cat seen, transitioning back to LISTENING")
-            if (currentState == State.LOOKING) {
-                transitionTo(State.LISTENING)
+            Log.i(tag, "No cat seen, transitioning back to LISTEN")
+            if (currentState == State.LOOK) {
+                transitionTo(State.LISTEN)
             } else {
                 Log.w(tag, "Ignored no cat seen event while in state: $currentState")
             }
@@ -60,9 +58,12 @@ class StateMachine(private val context: Context) {
     }
 
     private fun onNotificationSent() {
-        Log.i(tag, "Notification sent, transitioning to PAUSING")
-        if (currentState == State.RINGING) {
-            transitionTo(State.PAUSING)
+        Log.i(tag, "Notification sent, scheduling return to LISTEN")
+        if (currentState == State.RING) {
+            handler.postDelayed({
+                Log.i(tag, "Returning to LISTEN after notification")
+                transitionTo(State.LISTEN)
+            }, 2 * 60 * 1000) // 2 minutes delay
         } else {
             Log.w(tag, "Ignored notification sent event while in state: $currentState")
         }
@@ -70,8 +71,12 @@ class StateMachine(private val context: Context) {
 
     private fun scheduleHeartbeat() {
         handler.postDelayed({
-            if (currentState == State.LISTENING) {
-                transitionTo(State.BEATING)
+            if (currentState == State.LISTEN) {
+                MyApplication.deviceName?.let {
+                    notificationService?.sendNotification("heartbeat")
+                }
+                Log.i(tag, "Heartbeat notification sent")
+                scheduleHeartbeat() // Reschedule the heartbeat
             }
         }, 10 * 60 * 1000) // 10 minutes delay
     }
@@ -85,70 +90,40 @@ class StateMachine(private val context: Context) {
         }
 
         when (newState) {
-            State.LISTENING -> {
-                Log.i(tag, "Entering LISTENING state")
-                currentState = State.LISTENING
+            State.LISTEN -> {
+                Log.i(tag, "Entering LISTEN state")
+                currentState = State.LISTEN
                 soundDetectionService = SoundDetectionService { onCatHeard() }
                 soundDetectionService?.initialize(context)
                 soundDetectionService?.startListening()
                 Log.i(tag, "Sound detection service started")
                 scheduleHeartbeat()
                 Log.i(tag, "Heartbeat scheduled")
-                isWaitingScheduled = false
-                Log.i(tag, "Setup complete for LISTENING state")
             }
 
-            State.LOOKING -> {
-                Log.i(tag, "Entering LOOKING state")
-                currentState = State.LOOKING
+            State.LOOK -> {
+                Log.i(tag, "Entering LOOK state")
+                currentState = State.LOOK
                 soundDetectionService?.stopListening()
                 soundDetectionService = null
                 cameraService = CameraService(context) { onCatSeen(it) }
                 cameraService?.startCamera()
-                Log.i(tag, "Exiting LOOKING state")
+                Log.i(tag, "Exiting LOOK state")
             }
-            State.RINGING -> {
-                Log.i(tag, "Entering RINGING state")
-                currentState = State.RINGING
+
+            State.RING -> {
+                Log.i(tag, "Entering RING state")
+                currentState = State.RING
 
                 cameraService?.stopCamera()
                 cameraService = null
 
                 notificationService = NotificationService(context) { onNotificationSent() }
-                MyApplication.deviceName?.let { notificationService?.sendNotification("ring", it) }
-                Log.i(tag, "Exiting RINGING state")
+                MyApplication.deviceName?.let { notificationService?.sendNotification("ring") }
+                Log.i(tag, "Exiting RING state")
             }
-            State.PAUSING -> {
-                notificationService = null
-                if (currentState != State.PAUSING) {
-                    Log.i(tag, "Entering PAUSING state")
-                    currentState = State.PAUSING
-                    if (!isWaitingScheduled) {
-                        isWaitingScheduled = true
-                        handler.postDelayed({
-                            Log.i(tag, "PAUSING state over, transitioning to LISTENING")
-                            transitionTo(State.LISTENING)
-                        }, 2 * 60 * 1000) // 2 minutes delay
-                        Log.i(tag, "Handler posted for PAUSING state")
-                    }
-                }
-            }
-            State.BEATING -> {
-                Log.i(tag, "Entering BEATING state")
-                currentState = State.BEATING
-                notificationService = NotificationService(context) {
-                    Log.i(tag, "Heartbeat notification sent")
-                    transitionTo(State.LISTENING)
-                }
-                MyApplication.deviceName?.let {
-                    notificationService?.sendNotification(
-                        "heartbeat",
-                        it
-                    )
-                }
-                Log.i(tag, "Exiting BEATING state")
-            }
-            State.INITIALIZING -> {
+
+            State.INIT -> {
                 // Do nothing, just a placeholder state
             }
         }

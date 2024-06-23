@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import com.example.cdbv4_pixel_app.Constants
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
