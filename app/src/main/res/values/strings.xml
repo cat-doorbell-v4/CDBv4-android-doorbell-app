@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">CDBv4-pixel-app</string>
+    <string name="cdbv4_avatar">demo</string>
 </resources>
