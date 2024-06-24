@@ -2,16 +2,24 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="app">
+      <SelectionState runConfigName="Cat Doorbell V4">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-06-18T05:24:46.282845Z">
+        <DropdownSelection timestamp="2024-06-23T19:24:28.770937Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=89AY052LR" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=9C121FFBA0028E" />
             </handle>
           </Target>
         </DropdownSelection>
-        <DialogSelection />
+        <DialogSelection>
+          <targets>
+            <Target type="DEFAULT_BOOT">
+              <handle>
+                <DeviceId pluginId="Default" identifier="serial=192.168.1.23:5555;connection=fe992d66" />
+              </handle>
+            </Target>
+          </targets>
+        </DialogSelection>
       </SelectionState>
     </selectionStates>
   </component>

@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -29,6 +30,7 @@ import com.example.cdbv4_pixel_app.services.LaunchService
 import com.example.cdbv4_pixel_app.services.LogcatService
 import com.example.cdbv4_pixel_app.statemachine.StateMachine
 
+
 /*
 Todo: Alert when running on battery only
 Todo: Alert on excessive temperature
@@ -44,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var stateMachine: StateMachine
     private lateinit var wakeLock: PowerManager.WakeLock
     private lateinit var gestureDetector: GestureDetector
+    private lateinit var wifiManager: WifiManager
 
 
     private val TAG = "MainActivity"
@@ -52,6 +55,22 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+
+        // Request necessary permissions
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                0
+            )
+        } else {
+            disableMacRandomization()
+        }
         startLogging()
         checkAndRequestPermissions()
         adminBackdoorUnlock()
@@ -66,6 +85,56 @@ class MainActivity : AppCompatActivity() {
         setShowWhenLocked(true)
         initializeStateMachine()
     }
+
+    private fun disableMacRandomization() {
+        // Ensure WiFi is enabled
+        if (!wifiManager.isWifiEnabled) {
+            wifiManager.isWifiEnabled = true
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // Android 10+
+            try {
+                val configuredNetworks = wifiManager.configuredNetworks
+                val currentNetwork = wifiManager.connectionInfo.ssid
+
+                for (config in configuredNetworks) {
+                    if (config.SSID == currentNetwork) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { // Android 11+
+                            try {
+                                val setMacRandomizationSettingMethod = config.javaClass.getMethod(
+                                    "setMacRandomizationSetting", Int::class.javaPrimitiveType
+                                )
+                                setMacRandomizationSettingMethod.invoke(
+                                    config,
+                                    0
+                                ) // 0 corresponds to WifiConfiguration.RANDOMIZATION_NONE
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        } else { // Use reflection for older methods
+                            try {
+                                val field =
+                                    config.javaClass.getDeclaredField("macRandomizationSetting")
+                                field.isAccessible = true
+                                field.setInt(
+                                    config,
+                                    0
+                                ) // 0 corresponds to WifiConfiguration.RANDOMIZATION_NONE
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                        wifiManager.updateNetwork(config)
+                        wifiManager.reconnect()
+                        break
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
 
     private fun adminBackdoorUnlock() {
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -232,7 +301,8 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.CAMERA,
             Manifest.permission.READ_PHONE_STATE,
             Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.ACCESS_NETWORK_STATE
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            Manifest.permission.ACCESS_FINE_LOCATION
         )
 
         val permissionsToRequest = permissions.filter {
