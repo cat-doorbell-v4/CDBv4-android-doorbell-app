@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="Cat Doorbell V4">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-06-23T19:24:28.770937Z">
+        <DropdownSelection timestamp="2024-07-31T12:38:14.085061Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=9C121FFBA0028E" />

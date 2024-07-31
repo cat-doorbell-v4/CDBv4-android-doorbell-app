@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
@@ -84,6 +85,25 @@ class MainActivity : AppCompatActivity() {
         setTurnScreenOn(true)
         setShowWhenLocked(true)
         initializeStateMachine()
+
+        // Set Wi-Fi configuration
+        setWifiConfiguration(Constants.WIFI_SSID, Constants.WIFI_PASSWORD)
+    }
+
+    private fun setWifiConfiguration(ssid: String, password: String) {
+        val wifiConfig = WifiConfiguration()
+        wifiConfig.SSID = String.format("\"%s\"", ssid)
+        wifiConfig.preSharedKey = String.format("\"%s\"", password)
+
+        val netId = wifiManager.addNetwork(wifiConfig)
+        if (netId == -1) {
+            Log.e(TAG, "Failed to add network configuration!")
+            return
+        }
+
+        wifiManager.disconnect()
+        wifiManager.enableNetwork(netId, true)
+        wifiManager.reconnect()
     }
 
     private fun disableMacRandomization() {
@@ -301,6 +321,7 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.CAMERA,
             Manifest.permission.READ_PHONE_STATE,
             Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.CHANGE_WIFI_STATE,
             Manifest.permission.ACCESS_NETWORK_STATE,
             Manifest.permission.ACCESS_FINE_LOCATION
         )
@@ -313,6 +334,10 @@ class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(this, permissionsToRequest.toTypedArray(), 1)
         } else {
             Log.d(TAG, "All permissions are already granted")
+            setWifiConfiguration(
+                Constants.WIFI_SSID,
+                Constants.WIFI_PASSWORD
+            ) // Set Wi-Fi config if permissions are granted
         }
     }
 
@@ -325,6 +350,10 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == PERMISSIONS_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
                 Log.d(TAG, "All requested permissions granted")
+                setWifiConfiguration(
+                    Constants.WIFI_SSID,
+                    Constants.WIFI_PASSWORD
+                ) // Set Wi-Fi config if permissions are granted
             } else {
                 Log.d(TAG, "Some permissions are denied")
             }
