@@ -35,10 +35,7 @@ import com.example.cdbv4_pixel_app.statemachine.StateMachine
 /*
 Todo: Alert when running on battery only
 Todo: Alert on excessive temperature
-Todo: Send pic from camera when meow identified, but no cat seen
-Todo: Get AWS log monitoring working
-ToDo: Put the device names and URLs in an encrypted config/constants file
-ToDo: Document in pictures and descriptions what I have done.
+Todo: Send pic from camera when meow identified, but no cat seen (ie false alarms)
 */
 
 
