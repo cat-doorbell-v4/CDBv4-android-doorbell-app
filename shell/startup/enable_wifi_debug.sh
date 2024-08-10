@@ -1,8 +1,5 @@
 #!/system/bin/sh
-
-# Wait for the system to settle
-sleep 60
-
-# Enable Wireless debugging
-settings put global adb_wifi_enabled 1
-
+# Enable ADB over Wi-Fi on port 5555
+setprop service.adb.tcp.port 5555
+stop adbd
+start adbd

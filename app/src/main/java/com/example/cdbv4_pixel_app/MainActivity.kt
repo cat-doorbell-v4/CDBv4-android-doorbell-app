@@ -33,11 +33,12 @@ import com.example.cdbv4_pixel_app.statemachine.StateMachine
 
 
 /*
+Todo: Make remotely accessible (i.e auto-set full-time wifi access)
+Todo: Convert to AWS IoT device(s)
 Todo: Alert when running on battery only
 Todo: Alert on excessive temperature
 Todo: Send pic from camera when meow identified, but no cat seen (ie false alarms)
 */
-
 
 class MainActivity : AppCompatActivity() {
     private val PERMISSIONS_REQUEST_CODE = 100
